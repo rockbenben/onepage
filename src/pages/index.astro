@@ -1,0 +1,70 @@
+---
+import "../styles/global.css";
+import { site, gh } from "../lib/data";
+import Hero from "../components/Hero.astro";
+import PlanTracker from "../components/PlanTracker.astro";
+import FeaturedSection from "../components/FeaturedSection.astro";
+import GridSection from "../components/GridSection.astro";
+import ListSection from "../components/ListSection.astro";
+import StatsSection from "../components/StatsSection.astro";
+
+const compo: Record<string, any> = {
+  featured: FeaturedSection,
+  grid: GridSection,
+  list: ListSection,
+  stats: StatsSection,
+};
+
+const title = site.profile.title ? `${site.profile.name} · ${site.profile.title}` : site.profile.name;
+const themeStyle = `--color-accent:${site.theme.accent};--color-accent-2:${site.theme.accent2}`;
+
+// Person 结构化数据：从 yaml 自动生成，帮助搜索/AI 引擎理解站点
+const jsonLd = JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "Person",
+  name: site.profile.name,
+  ...(site.profile.title && { jobTitle: site.profile.title }),
+  ...(site.profile.intro && { description: site.profile.intro }),
+  ...(site.url && { url: site.url }),
+  ...(site.profile.github && { sameAs: [site.profile.github] }),
+});
+---
+
+<html lang={site.lang} style={themeStyle}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#fafaf7" />
+    {site.url && <link rel="canonical" href={site.url} />}
+    <link rel="preload" href="/fonts/ibm-plex-mono-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/inter-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <script type="application/ld+json" set:html={jsonLd} />
+    {site.profile.intro && <meta name="description" content={site.profile.intro} />}
+    <meta property="og:title" content={title} />
+    {site.profile.intro && <meta property="og:description" content={site.profile.intro} />}
+    {site.url && <meta property="og:url" content={site.url} />}
+    {site.url && <meta property="og:image" content={new URL("/og.png", site.url).href} />}
+    {site.url && <meta name="twitter:card" content="summary_large_image" />}
+  </head>
+  <body class="mx-auto max-w-5xl px-5">
+    <Hero />
+    {site.sections.map((s) => {
+      const C = compo[s.type];
+      return <C section={s} />;
+    })}
+    {site.plan && (
+      <div class="mt-20">
+        <PlanTracker plan={site.plan} />
+      </div>
+    )}
+    <footer class="mono mt-10 border-t border-(--color-line) py-10 text-xs text-(--color-ink-2)">
+      <p>
+        © {new Date().getFullYear()} {site.profile.name}
+        {site.footer && <Fragment> · <span set:html={site.footer} /></Fragment>}
+        {gh.fetched && ` · 数据更新于 ${gh.fetched.slice(0, 10)}`}
+      </p>
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,26 @@
+{
+  "name": "onepage",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "description": "一个文件，就是你的主页 · 365 开源计划 #022",
+  "scripts": {
+    "test": "vitest run",
+    "fetch": "node scripts/fetch-github.mjs",
+    "dev": "astro dev",
+    "build": "npm run fetch && astro build",
+    "build:offline": "astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "astro": "^5.0.0"
+  },
+  "devDependencies": {
+    "@fontsource/ibm-plex-mono": "^5.2.7",
+    "@fontsource/inter": "^5.2.8",
+    "@tailwindcss/vite": "^4.0.0",
+    "js-yaml": "^4.1.0",
+    "tailwindcss": "^4.0.0",
+    "vitest": "^4.1.9"
+  }
+}

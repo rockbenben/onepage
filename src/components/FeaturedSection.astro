@@ -1,0 +1,48 @@
+---
+import { repoOf, fmtStars, ghUrl, thumbOf } from "../lib/data";
+import SectionHeader from "./SectionHeader.astro";
+
+const { section } = Astro.props;
+---
+
+<section class="mt-16">
+  <SectionHeader {...section} />
+  <div class="mt-6 grid gap-5 md:grid-cols-3">
+    {section.items.map((f: any) => {
+      const r = repoOf(f.repo);
+      const img = thumbOf(f);
+      const src = ghUrl(f.repo);
+      const main = f.demo ?? f.url;
+      return (
+        <article class="card flex flex-col overflow-hidden">
+          {img && (
+            <a href={main ?? src} target="_blank" rel="noopener noreferrer" class="thumb block aspect-[1200/630] overflow-hidden border-b border-(--color-line)">
+              <img src={img} alt={`${f.name} 预览图`} loading="lazy" class="h-full w-full object-contain" />
+            </a>
+          )}
+          <div class="flex grow flex-col p-6">
+            <div class="flex items-center justify-between">
+              <h3 class="text-lg font-semibold">{f.name}</h3>
+              {r && r.stars >= 10 && <span class="chip chip-star">★ {fmtStars(r.stars)}</span>}
+            </div>
+            {f.tagline && <p class="mt-2 font-medium">{f.tagline}</p>}
+            {f.desc && <p class="mt-2 grow text-sm leading-relaxed text-(--color-ink-2)">{f.desc}</p>}
+            {f.tags.length > 0 && (
+              <div class="mt-4 flex flex-wrap gap-2">
+                {f.tags.map((t: string) => <span class="chip">{t}</span>)}
+              </div>
+            )}
+            <div class="mt-3 flex gap-4 text-sm">
+              {main && (
+                <a class="inline-block py-2 font-medium text-(--color-accent) hover:underline" href={main} target="_blank" rel="noopener noreferrer">
+                  {f.demoLabel ?? "在线试用"} →
+                </a>
+              )}
+              {src && <a class="inline-block py-2 text-(--color-ink-2) hover:text-(--color-ink) hover:underline" href={src} target="_blank" rel="noopener noreferrer">源码</a>}
+            </div>
+          </div>
+        </article>
+      );
+    })}
+  </div>
+</section>

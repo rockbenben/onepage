@@ -1,0 +1,21 @@
+---
+import { gh } from "../lib/data";
+import SectionHeader from "./SectionHeader.astro";
+
+const { section } = Astro.props;
+---
+
+<section class="mt-2">
+  <SectionHeader {...section} />
+  <div class="flex flex-wrap divide-x divide-(--color-line) border-y border-(--color-line)">
+    {section.items.map((s: any) => {
+      const value = s.auto === "total_stars" && gh.totalStars > 0 ? gh.totalStars : s.value;
+      return (
+        <div class="min-w-[130px] flex-1 py-5 pl-5 first:pl-0">
+          <div class="stat-num text-2xl sm:text-3xl">{value.toLocaleString()}{s.suffix}</div>
+          <div class="mt-1 text-xs text-(--color-ink-2) sm:text-sm">{s.label}</div>
+        </div>
+      );
+    })}
+  </div>
+</section>

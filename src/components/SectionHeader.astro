@@ -1,0 +1,20 @@
+---
+const { title, hint, more, moreLabel, count } = Astro.props;
+---
+
+{
+  (title || more) && (
+    <div class="flex items-baseline justify-between gap-4">
+      <h2 class="text-2xl font-bold">
+        {title}
+        {count != null && <span class="mono ml-2.5 text-sm font-normal text-(--color-ink-2)">{count}</span>}
+        {hint && <span class="ml-3 text-sm font-normal text-(--color-ink-2)">{hint}</span>}
+      </h2>
+      {more && (
+        <a class="mono shrink-0 text-xs text-(--color-accent) hover:text-(--color-accent-2) hover:underline" href={more} target="_blank" rel="noopener noreferrer">
+          {moreLabel}
+        </a>
+      )}
+    </div>
+  )
+}

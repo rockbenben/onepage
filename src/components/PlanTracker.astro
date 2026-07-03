@@ -1,0 +1,17 @@
+---
+// 签名元素：一年 365 格，已发布的项目盖朱砂章。纯 CSS，零 JS。
+const { plan } = Astro.props;
+const cells = Array.from({ length: plan.total }, (_, i) => i < plan.done);
+---
+
+<div>
+  <div class="tracker" role="img" aria-label={`进度 ${plan.done} / ${plan.total}`}>
+    {cells.map((stamped, i) =>
+      stamped ? <span class="cell stamp" style={`--i:${i}`} aria-hidden="true" /> : <span class="cell" aria-hidden="true" />,
+    )}
+  </div>
+  <p class="mono mt-3 text-xs text-(--color-ink-2)">
+    <span class="font-semibold text-(--color-accent)">{plan.done}</span> / {plan.total}
+    {plan.label && <span> · {plan.label}</span>}
+  </p>
+</div>

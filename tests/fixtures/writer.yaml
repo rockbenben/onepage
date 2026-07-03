@@ -1,0 +1,48 @@
+site:
+  lang: zh-CN
+  footer: '独立写作者'
+  theme: { accent: "#f59e0b", accent2: "#ef4444" }
+
+profile:
+  name: 李四
+  title: 独立写作者 · 播客主理人
+  intro: 写商业与技术交叉地带的深度长文。
+  avatar: /avatar.jpg
+  eyebrow: Writing Portfolio
+  socials:
+    - { label: 博客, url: https://example.com, icon: blog }
+    - { label: Email, url: mailto:hi@example.com }
+  ctas:
+    - { label: 约稿, url: mailto:hi@example.com, primary: true }
+    - { label: RSS 订阅, url: https://example.com/feed }
+
+sections:
+  - type: featured
+    title: 代表作
+    items:
+      - name: 十年之后的中文互联网
+        tagline: 全网 50 万阅读的年度长文
+        desc: 从流量分配机制看内容生态的十年变迁。
+        demo: https://example.com/essay-1
+        demoLabel: 阅读全文
+        image: https://example.com/cover-1.png
+        tags: [长文, 年度]
+
+  - type: list
+    title: 文章
+    more: https://example.com/archive
+    moreLabel: 全部文章 →
+    items:
+      - name: AI 会取代编辑吗
+        date: "2026-05"
+        url: https://example.com/essay-2
+        meta: 少数派
+      - name: 播客的商业化陷阱
+        date: "2026-02"
+        desc: 访谈了 12 位播客主理人之后的观察。
+        meta: 自营博客
+
+  - type: stats
+    items:
+      - { label: 发表文章, value: 120, suffix: "+" }
+      - { label: 订阅读者, value: 30000, suffix: "+" }

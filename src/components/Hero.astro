@@ -1,0 +1,52 @@
+---
+import { site, assets } from "../lib/data";
+import SocialIcon from "./SocialIcon.astro";
+
+const { profile, plan } = site;
+const avatar = assets.avatar ?? profile.avatar;
+---
+
+<header class="pt-6">
+  <div class="flex flex-col gap-1 border-b border-(--color-line) pb-4 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
+    {profile.eyebrow && <p class="eyebrow">{profile.eyebrow}</p>}
+    {plan && (
+      <p class="eyebrow shrink-0 text-(--color-accent)">
+        #{String(plan.done).padStart(3, "0")} / {plan.total}
+      </p>
+    )}
+  </div>
+
+  <div class="pt-14 pb-12">
+    {avatar && (
+      <img src={avatar} alt={profile.name} width="72" height="72"
+        class="mb-6 size-18 rounded-lg border border-(--color-line)" />
+    )}
+    <h1 class="text-4xl font-extrabold tracking-tight sm:text-5xl">{profile.name}</h1>
+    {profile.title && (
+      <p class="mt-3 text-lg font-medium sm:text-xl">{profile.title}</p>
+    )}
+    {profile.intro && (
+      <p class="mt-4 max-w-2xl leading-relaxed text-(--color-ink-2) sm:text-lg">{profile.intro}</p>
+    )}
+    {profile.ctas.length > 0 && (
+      <div class="mt-7 flex flex-wrap gap-3">
+        {profile.ctas.map((c: any) => (
+          <a href={c.url} target={c.url.startsWith("/") || c.url.startsWith("mailto:") ? undefined : "_blank"}
+            rel={c.url.startsWith("/") || c.url.startsWith("mailto:") ? undefined : "noopener noreferrer"}
+            class={c.primary ? "btn btn-primary" : "btn"}>{c.label}</a>
+        ))}
+      </div>
+    )}
+    {profile.socials.length > 0 && (
+      <div class="mt-5 flex flex-wrap gap-2.5">
+        {profile.socials.map((s: any) => (
+          <a href={s.url} target={s.url.startsWith("mailto:") ? undefined : "_blank"}
+            rel={s.url.startsWith("mailto:") ? undefined : "noopener noreferrer"}
+            title={s.label} aria-label={s.label} class="icon-btn">
+            <SocialIcon icon={s.icon} url={s.url} />
+          </a>
+        ))}
+      </div>
+    )}
+  </div>
+</header>

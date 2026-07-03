@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.astro/
+src/data/github.json
+src/data/assets.json
+public/avatar-auto.*
+public/shots/
+
+.superpowers/
+.gstack/
+
+.claude/
+
+# 内部 AI 规划/设计稿，本地保留、不进公开仓库
+docs/superpowers/

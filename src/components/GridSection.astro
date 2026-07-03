@@ -1,0 +1,32 @@
+---
+import { repoOf, fmtStars, ghUrl } from "../lib/data";
+import SectionHeader from "./SectionHeader.astro";
+
+const { section } = Astro.props;
+---
+
+<section class="mt-16">
+  <SectionHeader {...section} count={section.count ? section.items.length : undefined} />
+  <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    {section.items.map((pj: any) => {
+      const r = repoOf(pj.repo);
+      const src = ghUrl(pj.repo);
+      const main = pj.demo ?? pj.url;
+      return (
+        <article class="card-lite p-5">
+          <div class="flex items-center justify-between">
+            <h3 class="font-semibold">{pj.name}</h3>
+            {r && r.stars >= 10 && <span class="chip chip-star">★ {fmtStars(r.stars)}</span>}
+          </div>
+          {pj.desc && <p class="mt-2 text-sm leading-relaxed text-(--color-ink-2)">{pj.desc}</p>}
+          {(main || src) && (
+            <div class="mt-2 flex gap-4 text-sm">
+              {main && <a class="inline-block py-2 text-(--color-accent) hover:underline" href={main} target="_blank" rel="noopener noreferrer">{pj.demoLabel ?? "Demo"}</a>}
+              {src && <a class="inline-block py-2 text-(--color-ink-2) hover:text-(--color-ink) hover:underline" href={src} target="_blank" rel="noopener noreferrer">GitHub</a>}
+            </div>
+          )}
+        </article>
+      );
+    })}
+  </div>
+</section>
