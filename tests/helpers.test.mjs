@@ -1,6 +1,38 @@
 import { describe, it, expect } from "vitest";
-import { parseOgImage, pickThumbSource, extFromContentType, ghUserFrom, slugify } from "../scripts/helpers.mjs";
+import { parseOgImage, extFromContentType, ghUserFrom, slugify } from "../scripts/helpers.mjs";
+import { repoFromUrl, fixUrl, loadConfig, TOP_ALIAS, WORK_ALIAS, LANG_NAME_ALIAS } from "../scripts/helpers.mjs";
 import { slugify as schemaSlugify } from "../src/lib/schema";
+
+describe("repoFromUrl", () => {
+  it("仓库形状解析、纯主页/非 github 为 null", () => {
+    expect(repoFromUrl("https://github.com/a/b")).toEqual({ owner: "a", repo: "b" });
+    expect(repoFromUrl("https://github.com/a/b/tree/main/x")).toEqual({ owner: "a", repo: "b" });
+    expect(repoFromUrl("https://github.com/a")).toBeNull();
+    expect(repoFromUrl("https://example.com/a/b")).toBeNull();
+    expect(repoFromUrl(undefined)).toBeNull();
+  });
+});
+
+describe("fixUrl 零配置纠错", () => {
+  it("裸邮箱补 mailto:、裸域名补 https://、其余原样", () => {
+    expect(fixUrl("hi@example.com")).toBe("mailto:hi@example.com");
+    expect(fixUrl("example.com")).toBe("https://example.com");
+    expect(fixUrl("example.com/page")).toBe("https://example.com/page");
+    expect(fixUrl("https://a.com")).toBe("https://a.com");
+    expect(fixUrl("mailto:a@b.c")).toBe("mailto:a@b.c");
+    expect(fixUrl("/resume.pdf")).toBe("/resume.pdf"); // 站内路径不动
+  });
+});
+
+describe("别名表", () => {
+  it("中英双认指向同一内部键", () => {
+    expect(TOP_ALIAS["名字"]).toBe("name");
+    expect(TOP_ALIAS.name).toBe("name");
+    expect(WORK_ALIAS["重点"]).toBe("star");
+    expect(WORK_ALIAS.star).toBe("star");
+    expect(LANG_NAME_ALIAS["中文"]).toBe("zh-CN");
+  });
+});
 
 describe("parseOgImage", () => {
   it("解析 property 在前", () => {
@@ -19,27 +51,6 @@ describe("parseOgImage", () => {
     ).toBe("https://a.com/social-card.png");
     // og:image:width 不能被误当成 og:image
     expect(parseOgImage(`<meta property=og:image:width content=1280 />`)).toBeNull();
-  });
-});
-
-describe("pickThumbSource", () => {
-  it("image 本地路径 → local", () => {
-    expect(pickThumbSource({ image: "/covers/a.png" }, "u")).toEqual({ kind: "local", path: "/covers/a.png" });
-  });
-  it("image 远程 URL → remote（优先级最高）", () => {
-    expect(pickThumbSource({ image: "https://a.com/x.png", demo: "https://d.com" }, "u"))
-      .toEqual({ kind: "remote", url: "https://a.com/x.png" });
-  });
-  it("无 image 有 demo → og", () => {
-    expect(pickThumbSource({ demo: "https://d.com" }, "u")).toEqual({ kind: "og", url: "https://d.com" });
-  });
-  it("只有 repo → GitHub 社交卡片", () => {
-    expect(pickThumbSource({ repo: "r" }, "u"))
-      .toEqual({ kind: "remote", url: "https://opengraph.githubassets.com/1/u/r" });
-  });
-  it("啥都没有 → null；有 repo 无 ghUser → null", () => {
-    expect(pickThumbSource({}, "u")).toBeNull();
-    expect(pickThumbSource({ repo: "r" }, null)).toBeNull();
   });
 });
 
@@ -68,5 +79,13 @@ describe("slugify", () => {
   it("与 src/lib/schema.ts 的 slugify 输出一致（防两份实现漂移）", () => {
     const samples = ["My Great Essay!", "千世书 Thousand Lives", "  --Edge--Case!! ", "A_B.C/D", "中文123abc"];
     for (const s of samples) expect(slugify(s)).toBe(schemaSlugify(s));
+  });
+});
+
+describe("loadConfig：统一走 CORE_SCHEMA", () => {
+  it("无引号日期解析成字符串，不吞成 JS Date", () => {
+    const doc = loadConfig("日期: 2026-05-01");
+    expect(doc.日期).toBe("2026-05-01");
+    expect(doc.日期).not.toBeInstanceOf(Date);
   });
 });
