@@ -1,0 +1,21 @@
+---
+// 语言切换：纯 <a> 链接，不引入任何 JS。只有一种语言时整块不渲染。
+import { nativeName } from "../i18n/ui";
+
+const { locales, current } = Astro.props;
+---
+
+{locales.length > 1 && (
+  <p class="eyebrow flex shrink-0 items-baseline gap-1.5">
+    {locales.map((l: any, i: number) => (
+      <Fragment>
+        {i > 0 && <span aria-hidden="true" class="opacity-40">/</span>}
+        {l.code === current ? (
+          <span class="font-semibold text-(--color-ink)" aria-current="true">{nativeName(l.code)}</span>
+        ) : (
+          <a href={l.href} hreflang={l.code} class="hover:text-(--color-ink) hover:underline">{nativeName(l.code)}</a>
+        )}
+      </Fragment>
+    ))}
+  </p>
+)}
