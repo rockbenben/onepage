@@ -1,130 +1,76 @@
 # ============================================================
-# 数据即站点：改这个文件就是改网站。四种区块 type：
-#   featured（大卡带图）/ grid（网格墙）/ list（文字列表）/ stats（数据条）
-# star 数、头像、og 缩略图由 scripts/fetch-github.mjs 构建时抓取缓存，
-# 手动指定的字段永远优先于自动抓取。
+# 改这个文件就是改网站。唯一必填是「名字」，其余全部可选。
+# 字段中英都认（名字/name、作品/works、重点/star…）。
+# 「重点: true」的作品自动变成带图大卡；写「分类」会自动分组。
 # ============================================================
 
-site:
-  lang: zh-CN
-  url: https://me.newzone.top
-  plan: { total: 365, done: 22, label: 本站是第 22 号作品 } # 365 打卡网格；不需要可删除整行
-  footer: '本站为 <a href="https://github.com/rockbenben/365opensource" target="_blank" rel="noopener noreferrer" class="hover:underline">365 开源计划</a> #022'
-  # theme: { accent: "#c8402e", accent2: "#a33524" }   # 想换强调色就取消注释（默认朱砂红）
+名字: Benson
+头衔: 独立开发者 · 「365 开源计划」发起人
+介绍: 独立打造 AiShort（8.6K+ stars）等开源作品，发起「365 开源计划」——一人 + AI，一年 300+ 个开源项目。
+网址: https://me.newzone.top
+页脚: '本站为 <a href="https://github.com/rockbenben/365opensource" target="_blank" rel="noopener noreferrer" class="hover:underline">365 开源计划</a> #022'
+标记: 365 · Open Source
+主题: 朱砂
+外观: 亮
+开源项目: 10
+开源项目起始: 2025-01
+星标线: 20
+开源上限: 15
+开源排除:                       # 不想进开源节的仓库名（如本模板仓自身）
+  - onepage
+开源命名:                       # 仓库名 → 展示名（只改开源节标题，缩略图/链接仍按原 repo）；不写就用 GitHub 原名
+  img-prompt: IMGPrompt
+  md-translator: MD Translator
+  scrcpy-helper: scrcpy 投屏助手
+  native-batch-downloader: Native Batch Downloader
+  json-translate: JSON Translate
+  legend-talk: Legend Talk
+  text-splitter: Text Splitter
+  text-joiner: Text Joiner
+  text-diff: Text Diff
+  novel-processor: Novel Processor
+  chinese-conversion: Chinese Conversion
+  365opensource: 365 Open Source
+  idea-hub: Idea Hub
+开源描述:                       # 仓库名 → 描述（覆盖 GitHub 原描述）；不写就用 GitHub 原文。英文翻译写在 projects.en.yaml
+  LearnData: 开源笔记模板，一键部署个人知识库与博客，收录开源工具、效率方法与心理学自我提升。
+  img-prompt: 极简的 AI 绘画提示词生成器，5000+ 提示词、18 种语言，用母语写出精准提示词。
+  md-translator: 翻译 Markdown 不破坏格式，代码块、LaTeX 公式、链接全保留。
+  scrcpy-helper: 免安装、双击即用的 scrcpy 中文图形界面（Windows）。
+  rime-WeaselServer: 小狼毫（Rime）辅助启动工具，解决输入法或算法服务无法正常启动。
+  legend-talk: 与 161 位历史思想家的多轮 AI 圆桌——他们彼此辩论，而不只是回答你。
+  native-batch-downloader: 通过浏览器原生通道批量下载文件，连需登录的文件也能下，自动携带 Cookie。
+  text-splitter: 长文本分割器，面向 AI 提示词、文档编辑与社媒发布，三种模式、批量 ZIP 导出。
+  text-joiner: 按模板逐行拼接多列文本，批量生成 CSV、SQL、JSON，全程浏览器本地。
+  text-diff: 离线双栏文本 / 文件对比，逐处高亮差异并定位第一处不同，全程浏览器本地。
+  novel-processor: 一键修复网络小说排版：智能换行、章节重排、繁简转换、广告清理。
+  json-translate: 保结构的 JSON 翻译，面向 i18n，支持 JSONPath 与键映射。
+  chinese-conversion: 本地简繁转换与日文新字体互转，自带可编辑保护词典，全程不上传。
+  365opensource: 开源实验——一人 + AI，一年能做出多少开源项目？
+  idea-hub: 「365 开源计划」的需求收集与项目展示站，工单美学、中英双语。
 
-profile:
-  name: Benson
-  title: 独立开发者 · 「365 开源计划」发起人
-  intro: 独立打造 AiShort（8.6K+ stars）等开源矩阵，发起「365 开源计划」——一人 + AI，一年 300+ 开源项目的 AI 原生开发实验。
-  github: https://github.com/rockbenben   # 用于自动抓 star / 头像；非开发者可删
-  eyebrow: Portfolio · 365 Open Source
-  # socials 图标行与 CTA 按钮完全重复时不必两者都留；有 X/博客/RSS 等更多渠道时再启用：
-  # socials:
-  #   - { label: X, url: https://x.com/xxx }
-  #   - { label: RSS, url: https://example.com/feed }
-  ctas:
-    - { label: GitHub, url: https://github.com/rockbenben, primary: true }
-    # 简历 PDF 放到 public/resume.pdf 后再取消注释（避免线上 404）：
-    # - { label: 下载简历 PDF, url: /resume.pdf }
-    - { label: 联系我, url: mailto:qingwhat@gmail.com }
+链接:
+  - GitHub: https://github.com/rockbenben
+  - 博客: https://newzone.top/
+  - 联系我: mailto:qingwhat@gmail.com
 
-sections:
-  - type: stats
-    items:
-      - { label: GitHub Stars, value: 10000, suffix: "+", auto: total_stars }
-      - { label: 开源项目, value: 30, suffix: "+" }
-      - { label: 产品支持语言, value: 18, suffix: " 种" }
+数据:
+  - GitHub Stars: 自动
+  - 累计 Fork: forks
 
-  - type: featured
-    title: 代表作
-    hint: 点开即用
-    items:
-      - repo: ChatGPT-Shortcut
-        name: AiShort
-        tagline: AI 提示词管理与分享社区
-        desc: 18 种界面语言，支持离线使用与内网部署，服务合规敏感的政企与科研机构。
-        demo: https://www.aishort.top/
-        tags: [提示词, 社区, i18n]
-      - repo: subtitle-translator
-        name: Subtitle Translator
-        tagline: 浏览器本地运行的批量字幕翻译工具
-        desc: 支持 .srt/.ass/.vtt/.lrc，120+ 语言与 17+ 家 LLM 服务商，入选 deepseek-ai 官方 awesome 列表。
-        demo: https://tools.newzone.top/zh/subtitle-translator
-        tags: [翻译, 本地处理, LLM]
-      - repo: thousand-lives
-        name: 千世书 Thousand Lives
-        tagline: AI 文字游戏 · 免 Key 即玩的人生模拟器
-        desc: 10 个剧本、61 枚成就，纯前端运行，支持 28 家 AI 服务商预设与自定义剧本。
-        demo: https://lives.newzone.top/
-        tags: [AI 游戏, 多剧本, 纯前端]
-
-  # 全部作品合并为一张清单：按分量（star / 是否可试用）排序，访客一眼扫完。
-  # 分类不需要标题——每行的描述本身就说明了它是什么。
-  - type: list
-    title: 作品清单
-    count: true # 标题旁自动显示条目数
-    more: https://github.com/rockbenben?tab=repositories
-    moreLabel: 完整索引 →
-    items:
-      - repo: LearnData
-        name: LearnData
-        desc: 开源笔记模板，一键部署个人知识库和博客
-      - repo: img-prompt
-        name: IMGPrompt
-        desc: 18 语言 AI 图像提示词编辑器，内置 5000+ 提示词
-        demo: https://prompt.newzone.top/zh
-      - repo: md-translator
-        name: MD Translator
-        desc: 保格式 Markdown 翻译，代码块、LaTeX、链接全保留
-        demo: https://tools.newzone.top/zh/md-translator
-      - repo: legend-talk
-        name: Legend Talk
-        desc: 与 100+ 历史思想家多轮圆桌辩论的多 Agent 对话
-        demo: https://talk.newzone.top/
-      - repo: native-batch-downloader
-        name: Native Batch Downloader
-        desc: 用浏览器原生下载通道批量抓取文件，无需安装下载器
-      - repo: scrcpy-helper
-        name: scrcpy 投屏助手
-        desc: 免安装、双击即用的 scrcpy 中文图形界面（Windows）
-      - repo: whisper-subtitles
-        name: Whisper Subtitles
-        desc: 小众生肉视频 Whisper 转录 + 机翻字幕分享
-      - repo: text-diff
-        name: Text Diff
-        desc: 离线双栏文本对比，逐字符高亮并定位第一处不同
-        demo: https://tools.newzone.top/zh/text-diff
-      - repo: json-translate
-        name: JSON Translate
-        desc: 保持 schema 的 i18n JSON 翻译，支持 JSONPath 与键映射
-        demo: https://tools.newzone.top/zh/json-translate
-      - repo: easyvoice
-        name: EasyVoice 易声
-        desc: 基于 Qwen3-TTS 的本地配音 / 3 秒声音克隆，10 语种
-      - repo: funasr-subtitle
-        name: FunASR Subtitle
-        desc: 纯本地离线的 Windows 音视频转字幕，CPU 即可运行
-      - repo: hotkey-chain
-        name: Hotkey Chain
-        desc: 浏览器版快捷指令，75+ 动作编排，18 种语言
-      - repo: reflowpdf
-        name: ReflowPDF
-        desc: 浏览器本地把 PDF 重排为手机阅读版式，零上传
-        demo: https://rockbenben.github.io/reflowpdf/
-      - repo: markbook
-        name: Markbook
-        desc: 散落 .md/.txt 聚合成可搜索、可导出的书，纯本地
-        demo: https://markbook.newzone.top
-      - repo: juflow
-        name: JuFlow
-        desc: 国内博主内容聚合阅读器，覆盖 14 个平台
-      - repo: soundlings
-        name: Soundlings
-        desc: 给 3-10 岁孩子的安静陪玩工具，本地运行无追踪
-        demo: https://sound.newzone.top/
-      - repo: fillduck
-        name: FillDuck 填鸭
-        desc: 浏览器扩展商店上架助手，多语言 JSON 自动填充后台
-      - repo: aishort-skills
-        name: AiShort Skills
-        desc: Claude Agent Skills：Markdown 一键发布为可分享网页
+作品:
+  - 名字: AiShort
+    介绍: AI 提示词管理与分享社区。18 种界面语言，支持离线使用与内网部署，服务合规敏感的政企与科研机构。
+    链接: https://www.aishort.top/
+    源码: https://github.com/rockbenben/ChatGPT-Shortcut
+    重点: true
+  - 名字: Subtitle Translator
+    介绍: 浏览器本地运行的批量字幕翻译工具。支持 .srt/.ass/.vtt/.lrc，120+ 语言与 17+ 家 LLM 服务商，入选 deepseek-ai 官方 awesome 列表。
+    链接: https://tools.newzone.top/zh/subtitle-translator
+    源码: https://github.com/rockbenben/subtitle-translator
+    重点: true
+  - 名字: 千世书 Thousand Lives
+    介绍: AI 文字游戏 · 免 Key 即玩的人生模拟器。10 个剧本、61 枚成就，纯前端运行，支持 28 家 AI 服务商预设与自定义剧本。
+    链接: https://lives.newzone.top/
+    源码: https://github.com/rockbenben/thousand-lives
+    重点: true

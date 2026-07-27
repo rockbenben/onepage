@@ -1,6 +1,12 @@
 # onepage · 一个文件，就是你的主页
 
-> 365 开源计划 #022 —— 换掉一个文本文件里的内容，就有一个属于你自己的主页。适用于任何职业：开发者、设计师、写作者、播客主理人……
+> 改一个 YAML 文件，就有一个托管在自己地址上的个人主页
+
+[English](README.en.md) · **简体中文**
+
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) [![365 开源计划 #022](https://img.shields.io/badge/365%20%E5%BC%80%E6%BA%90%E8%AE%A1%E5%88%92-%23022-1f6feb)](https://github.com/rockbenben/365opensource)
+
+**[▶ 看看成品长什么样](https://me.newzone.top/)** · **[⬆ Use this template](https://github.com/rockbenben/onepage/generate)** —— 浏览器里点几下就有自己的主页
 
 Read.cv 关了，Bento 也关了——托管在别人平台上的个人主页随时可能消失。onepage 的答案：**一个 YAML 文件 + 静态站 + 自己的地址**，全部资产归你所有。
 
@@ -12,13 +18,16 @@ Read.cv 关了，Bento 也关了——托管在别人平台上的个人主页随
 ## 方式一 · 零终端，全程浏览器（推荐给非开发者）
 
 1. **复制模板**：点本页右上角绿色的 **「Use this template」→「Create a new repository」**。仓库名（Repository name）填 **`你的GitHub用户名.github.io`**——例如用户名是 `lisa`，就填 `lisa.github.io`。这样你的网址就是 `https://lisa.github.io`，免费、好记，也不用买域名。
-2. **填你自己的内容并保存**：进新仓库，点开 **`src/data/projects.yaml`**，点右上角 ✏️ 铅笔图标编辑，把里面的名字、简介、项目换成你的。改完拉到页面底部点绿色的 **「Commit changes」**。
-   > 诀窍：**只改冒号 `:` 后面的文字，每行开头的空格（缩进）一个都别动。** YAML 靠缩进对齐，删错一个空格页面就会白屏。拿不准就先只改文字、不加新行。
+2. **填你自己的内容并保存**：进新仓库，点开 **`src/data/projects.yaml`**，点右上角 ✏️ 铅笔图标编辑，把里面的名字、简介、作品换成你的。改完拉到页面底部点绿色的 **「Commit changes」**。
+   > 诀窍：**只改冒号 `:` 后面的文字，每行开头的空格（缩进）一个都别动。** YAML 靠缩进对齐，删错一个空格页面就会白屏。拿不准就先只改文字、不加新行。唯一必填的是「名字」，其余不想要就整行删掉。
+   > 如果你的英文页（`/en/`）还显示着别人的头衔和简介：仓库自带了一份英文翻译文件 `src/data/projects.en.yaml`，改法见下方「换成你自己的」一节。
+   > **不想手动改 YAML？** 部署好后打开 `你的用户名.github.io/edit`，填表就能生成配置，点「下载 projects.yaml」或「复制」，再回到第 2 步把内容替换进去。填表不会删错缩进，也就不会白屏。
+   > 编辑器界面支持中 / 英切换（右上角），首次按主文件的「语言」默认，之后记住你的选择。
 3. **开启网页显示**：第一次保存后等 1–2 分钟（仓库在后台自动构建，会生成一个 `gh-pages` 分支）。然后进 **Settings → Pages**，把 **Source** 选成 **「Deploy from a branch」**，分支选 **`gh-pages`**、目录选 **`/ (root)`**，点 Save。（只需设一次）
 4. **打开你的主页**：再等 1–2 分钟，访问 `你的用户名.github.io` 就是你的主页了。
 5. **以后想改**：随时回来编辑同一个文件，保存即自动重新上线。
 
-> 想让别人转发你链接时预览图和标题也正确？把 `src/data/projects.yaml` 里的 `site.url`、以及 `astro.config.mjs` 里的 `site` 都改成你的网址（`https://你的用户名.github.io`）。只给自己看、不在乎分享预览的话，跳过也行。
+> 想让别人转发你链接时预览图和标题也正确？把 `src/data/projects.yaml` 里的 `网址` 改成你的网址（`https://你的用户名.github.io`）即可，其余会自动跟着走。只给自己看、不在乎分享预览的话，跳过也行。
 
 ## 方式二 · 本地预览 / 进阶（需 Node + 命令行）
 
@@ -31,92 +40,164 @@ npm run build     # fetch + 构建 → dist/
 
 ## 特性
 
-- **四种区块自由编排**：featured（大卡带图）/ grid（网格墙）/ list(文字列表，适合文章、演讲、经历) / stats（数据条），想要几段、什么顺序全由 YAML 决定
-- **手动优先，自动兜底**：缩略图、头像、star 数都可手动指定；不指定则构建时自动抓取（demo 页 og:image、GitHub API），下载缓存到本地
-- **运行时零 JS、零外部请求**：Astro 5 + Tailwind 4 纯静态输出，字体图片全自托管
-- **GitHub 能力可选**：填了 `profile.github` 就自动更新 star 数与头像；非开发者删掉即可，构建照常
+- **唯一必填是「名字」**：最小 6 行就出一个完整页面，其余字段不写就不存在，复杂度只随需要长出来
+- **字段中英双认、全部人话**：`名字/name`、`作品/works`、`重点/star`… 中文英文写哪个都认
+- **排版自动**：标了 `重点` 的作品自动变带图大卡、写了 `分类` 自动分组出小标题、`数据` 自动排成数据条——版式决策全在渲染器，配置里不用管
+- **手动优先，自动兜底**：缩略图、头像、star 数都可手动指定；不指定则构建时自动抓取（链接页的 og:image、GitHub API），并**压缩优化**（缩放到卡片尺寸 + 转 WebP，图片重量约 -90%）后缓存到本地
+- **零 JS、零外部请求**：Astro 5 + Tailwind 4 纯静态输出，字体图片全自托管（`/edit` 编辑器页除外）
+- **GitHub 能力可选**：链接里放了 GitHub 地址就自动更新 star 数与头像；不放也照常构建
+- **第二语言可选**：多放一个 `src/data/projects.<语言码>.yaml` 翻译文件，站点自动多出对应语言版本和顶部切换器；删掉文件就下线
 
 ## YAML 参考
 
-### 顶层结构
+一个文件拍平成一层，没有嵌套分区。唯一必填是「名字」，其余全部可选。
+
+### 最小示例（6 行出站）
 
 ```yaml
-site: # 语言、域名、footer、主题色
-profile: # 名字、头衔、头像、社交链接、CTA 按钮
-sections: # 有序区块列表
+名字: 张三
+介绍: 一句话说清你是谁、在做什么。
+作品:
+  - 名字: 我的第一个作品
+    介绍: 它是做什么的。
+    链接: https://example.com
 ```
 
-### site / profile
+### 顶层字段
+
+| 中文键 | 英文别名 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| 名字 | name | **是** | 你的名字，唯一必填项 |
+| 头衔 | title | | 一行头衔，建议写可验证的事实 |
+| 介绍 | intro | | 一句话简介 |
+| 头像 | avatar | | 本地路径（图片放 `public/` 下，如 `/avatar.jpg`）或网址；不填且链接里有 GitHub 时自动抓 GitHub 头像 |
+| 链接 | links | | 列表，每条 `- 标签: 网址`；图标按网址、或「博客/blog」这类标签自动识别（GitHub / X / 邮箱 / RSS / 博客…） |
+| 作品 | works | | 列表，每条见下表 |
+| 数据 | stats | | 列表，每条 `- 标签: 值`；自动值：`自动`＝总星数、`项目数`＝非 fork/归档的公开仓库数、`forks`＝累计 Fork 数（都需「链接」里有一条 GitHub，否则该条跳过）；构建时取整到十位加「+」 |
+| 网址 | url | | 站点对外地址，用于分享预览（og）和 canonical；不填则整体略过 |
+| 颜色 | color | | 全站强调色，如 `"#c8402e"`——**引号必须加**：不加引号时 `#` 后面会被 YAML 当注释吃掉（hover 深色自动派生） |
+| 主题 | theme | | 整套配色，可选 `朱砂`（默认）/`靛蓝`/`森绿`/`暖褐`/`墨黑`；不写＝朱砂 |
+| 外观 | appearance | | 明暗，`亮`（默认）/`暗`/`自动`（跟随访客系统深色，纯 CSS） |
+| 开源项目 | opensource | | 可选，数字＝自动列出 star ≥ 此数的 GitHub 仓库并显示「开源项目」节；`true` ＝默认 10；不写＝不显示 |
+| 开源项目起始 | opensource_since | | 可选，日期（如 `2026-03`）；此日期后创建的仓库全列（绕过 star 阈值） |
+| 星标线 | star_line | | 可选，开源节排序分界（默认 20）：star 超过此数的置顶、按 star 降序；其余按最近更新降序 |
+| 开源上限 | opensource_max | | 可选，开源节最多展示几个（如 `12`），带真实缩略图；其余靠末尾「显示更多」跳 GitHub；不写=全部列出 |
+| 开源排除 | opensource_exclude | | 可选，仓库名列表（`- 仓库名`），把不想进开源节的仓库排除掉（如本模板仓自身）；大小写不敏感 |
+| 开源命名 | opensource_names | | 可选，`仓库名: 展示名` 映射（如 `md-translator: MD Translator`），只改开源节里的显示名；缩略图/链接仍按原仓库；不写就用 GitHub 原名 |
+| 开源描述 | opensource_descriptions | | 可选，`仓库名: 描述` 映射，覆盖开源节里从 GitHub 抓来的原描述；**可翻译**——英文写在 `projects.en.yaml` 的同名字段，按语言各显其文；不写就用 GitHub 原描述 |
+| 页脚 | footer | | 页脚落款，支持 `<a>` 链接 |
+| 标记 | mark | | 顶栏左上的小标记（如 `365 · Open Source`），带朱砂印章点；不写＝不显示 |
+| 语言 | lang | | 界面文案语言，默认中文；见「多语言」 |
+
+### 作品条目字段
+
+| 中文键 | 英文别名 | 必填 | 说明 |
+| --- | --- | --- | --- |
+| 名字 | name | **是** | 作品名 |
+| 介绍 | intro | | 一句话说明 |
+| 链接 | link | | 任意网址：GitHub / 文章 / B站 / arXiv / App Store…（不写也合法，纯图作品不可点） |
+| 源码 | source | | 第二链接（演示站另配仓库、论文另配代码时用） |
+| 图 | image | | 手动缩略图（本地路径或网址）；不填则自动抓：本人仓库的**自定义 Social preview** 优先，其次「链接」页的 og:image，最后 GitHub 自动卡片图 |
+| 日期 | date | | 原样显示的字符串，如 `2020–2024` |
+| 出处 | via | | 发表在哪，如《少数派》/ B站 / arXiv |
+| 分类 | group | | 同分类的作品自动归为一组、出小标题；不写就归入默认的「作品」组 |
+| 重点 | star | | `true` → 带图大卡展示，且不在下方清单里重复出现 |
+
+> 页面顺序是固定的、自动排的：**头像 · 名字 · 头衔 · 介绍 → 链接按钮 → 数据条 → 重点大卡 → 分类清单 → 页脚**。你只管填内容，版式交给渲染器。
+>
+> 零配置纠错：链接值写成裸邮箱（`hi@example.com`）自动补 `mailto:`、裸域名（`example.com`）自动补 `https://`。
+
+### 开源项目（自动）
+
+写 `开源项目: 10`，构建时会把你 GitHub 上 star ≥ 10 的仓库自动列成「开源项目」一节（按 star 排、排除 fork/归档、与重点/手列去重、无需手抄）。每行带**源码**链接，仓库设了 homepage 的还带 **demo/商店**链接。
+
+再加 `开源项目起始: 2026-03`，这个日期之后新建的仓库会**全部**列出（不看 star）——适合「持续高产、想展示体量」的场景。
+
+> 自动列出的仓库**名字与描述直接取自 GitHub、不随语言翻译**（英文页也显示 GitHub 上的原文）。想手动改名/译文，就把该作品手写进 `作品`（会与自动去重）。
+>
+> 只想把仓库名显示得漂亮些（`md-translator` → `MD Translator`、`scrcpy-helper` → `scrcpy 投屏助手`），用 `开源命名` 映射即可，不必手抄整条作品：
+>
+> ```yaml
+> 开源命名:
+>   md-translator: MD Translator
+>   scrcpy-helper: scrcpy 投屏助手
+> ```
+>
+> 想给开源节的描述换成自己的话、并且**分语言**（GitHub 原描述往往中英混排），用 `开源描述`——主文件写中文，`projects.en.yaml` 写英文：
+>
+> ```yaml
+> # projects.yaml
+> 开源描述:
+>   md-translator: 翻译 Markdown 不破坏格式，代码块、LaTeX、链接全保留。
+> # projects.en.yaml
+> 开源描述:
+>   md-translator: Translate Markdown without breaking format — code, LaTeX, links preserved.
+> ```
+
+### 三个用法范例
+
+**1 · 工作经历 / 时间线**——不加任何新字段，用 `分类` 归组、`日期` 显示时间段：
 
 ```yaml
-site:
-  lang: zh-CN # 可选，默认 zh-CN
-  url: https://your.domain # 可选，用于 og:image / og:url
-  footer: "自定义落款，支持 <a> 链接" # 可选
-  theme: { accent: "#c8402e", accent2: "#a33524" } # 可选，一处换全站强调色（默认朱砂红）
-  plan: { total: 365, done: 22, label: 本站是第 22 号作品 } # 可选，进度打卡网格（footer 前的小模块，任意目标都行：年度文章数、案例数…）；删掉即不显示
-
-profile:
-  name: 你的名字 # 唯一必填项
-  title: 头衔 # 可选，建议写可验证的事实
-  intro: 一段话简介 # 可选
-  avatar: /avatar.jpg # 可选；手动头像放 public/ 下任意路径（如 /avatar.jpg）即可，不与自动抓取冲突；不填且有 github 时自动抓 GitHub 头像，存为 public/avatar-auto.*（构建产物，勿提交）
-  github: https://github.com/xx # 可选；驱动 star 数、源码链接、头像
-  eyebrow: 顶部小标签 # 可选，默认 Portfolio
-  socials: # 可选；icon 可省略（按 url 自动识别 github/x/email/rss）
-    - { label: GitHub, url: https://github.com/xx }
-    - { label: Email, url: mailto:hi@example.com }
-  ctas: # 可选；primary 为白底主按钮
-    - { label: 联系我, url: mailto:hi@example.com, primary: true }
+作品:
+  - 名字: 高级工程师 · 某公司
+    介绍: 带队做了 XXX，从 0 到 1。
+    日期: 2022–至今
+    分类: 经历
+  - 名字: 工程师 · 另一家公司
+    介绍: 负责 YYY 模块。
+    日期: 2020–2022
+    分类: 经历
 ```
 
-### 四种区块
+**2 · ICP 备案号放页脚**——`页脚` 支持 `<a>`，备案信息放这里最合适（一行）：
 
 ```yaml
-sections:
-  - type: stats # 数据条
-    items:
-      - { label: GitHub Stars, value: 10000, suffix: "+", auto: total_stars } # auto 表示构建时用 API 实际值覆盖
-
-  - type: featured # 大卡带图（缩略图自动抓 demo 的 og:image，或用 image 指定）
-    title: 代表作
-    hint: 点开即用
-    items:
-      - name: 项目名 # 必填
-        desc: 描述 # 必填语义上建议填
-        tagline: 副标题
-        repo: my-repo # 可选：显示 star 与源码链接
-        demo: https://... # 可选：主链接，任意 URL
-        demoLabel: 阅读全文 # 可选：主链接文案
-        image: /covers/x.png # 可选：手动指定缩略图（本地或 URL），优先级最高
-        tags: [标签1, 标签2]
-
-  - type: grid # 网格墙（纯文字轻卡片）
-    title: 工具线
-    count: true # 可选：标题旁自动显示条目数
-    more: https://... # 可选：右上"更多"链接
-    moreLabel: 完整索引 →
-    items: [{ name, desc, repo?, demo? }]
-
-  - type: list # 文字列表（文章 / 演讲 / 项目清单 / 工作经历）
-    title: 文章
-    items:
-      - name: 文章标题 # 有 repo 时标题指向源码仓库，否则指向 url
-        date: "2026-05" # 可选，原样显示的字符串
-        url: https://...
-        meta: 刊物名 # 可选，右侧小字
-        desc: 一句话摘要
-        repo: my-repo # 可选：自动显示 ★ 数，右侧按需出 Demo（取 demo 字段）
+页脚: '<a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">京ICP备00000000号</a>'
 ```
 
-### 非开发者示例
+**3 · 摄影 / 设计师图墙**——每条作品都标 `重点`，全变带图大卡排成网格；纯图作品可以不写 `链接`：
 
-不写代码的人也能用：写作者的完整可用配置见 `tests/fixtures/writer.yaml`——没有任何 GitHub 字段，featured + list + stats 三段即成站。
+```yaml
+名字: 某某
+头衔: 摄影师
+作品:
+  - 名字: 晨雾
+    图: /photos/1.jpg
+    重点: true
+  - 名字: 街角
+    图: /photos/2.jpg
+    重点: true
+```
+
+### 不想写代码？
+
+写作者、研究者、摄影师的完整可用配置见 `tests/fixtures/writer.yaml`——没有任何 GitHub 字段，靠 `重点`（大卡）+ `分类`（分组清单）+ `数据` 就能成站。
+
+## 主题
+
+改一行 `主题:` 就换整套配色，5 套可选：
+
+| 主题 | 性格 |
+| --- | --- |
+| 朱砂（默认） | 纸白·墨·朱砂，暖红编辑感 |
+| 靛蓝 | 冷静专业，开发者/研究者 |
+| 森绿 | 自然沉稳 |
+| 暖褐 | 纸感温暖，写作者 |
+| 墨黑 | 近黑白极简，设计师 |
+
+每套都含明/暗两版。**默认 `外观: 亮`**；写 `外观: 暗` 定死深色，或 `外观: 自动` 跟随访客系统深色（纯 CSS，仍零 JS）。主题与明暗都在配置里定死，页面上不提供切换（想调就改这两行 / 用 `/edit`）。写了 `颜色:` 会覆盖当前主题的强调色。
+
+```yaml
+主题: 靛蓝
+外观: 暗
+```
 
 ## 换成你自己的
 
 - `src/data/projects.yaml` — 你的全部内容（仓库自带的是作者本人的作品集示例，直接改）
-- **域名要改两处**：`astro.config.mjs` 的 `site` 与 `projects.yaml` 的 `site.url`——都填你自己的网址，否则 canonical / og:image / sitemap 会指向示例站（方式一用 `用户名.github.io` 的填这个即可）
+- **域名只改一处**：`projects.yaml` 的 `网址` 填你自己的网址即可，`astro.config.mjs` 会自动跟着它走（方式一用 `用户名.github.io` 的填这个）
+- `src/data/projects.en.yaml` — 仓库自带的英文翻译（作者本人的头衔、简介、落款），用于演示双语站。它是一张「原文 → 译文」映射、直接覆盖对应文本，所以哪怕你把 `projects.yaml` 换成了自己的内容，英文页仍会显示这份英文。**不需要英文版就直接删掉这个文件**；需要的话把里面的内容换成你自己的译文
 - `public/favicon.svg` — 站点图标（默认是朱砂章）
 - `public/og.png` — 社交分享图（见下）
 - `LICENSE` — MIT，改成你的名字
@@ -129,6 +210,54 @@ sections:
 
 > `public/shots/` 与 `public/avatar-auto.*` 为构建时生成的资源，已被 `.gitignore` 忽略，无需（也不应）提交。
 
+## 多语言
+
+### 界面文案（10 种语言）
+
+模板自带的固定文案——「代表作」「作品」「在线体验」「源码」「回到首页」、404 页等——跟着 `语言` 走：
+
+```yaml
+语言: en   # 界面切英文；也认「中文」「英文」「日语」这类写法
+```
+
+内置 **10 种语言**：`en` `zh-CN` `zh-TW` `ja` `ko` `es` `fr` `de` `pt` `ru`。写 `zh-Hans` / `zh-Hant` 这类也认，未收录的语言回退到英文。要加一种界面语言：打开 `src/i18n/ui.ts`，照抄一份译好即可。
+
+### 让站点支持第二种语言（可选）
+
+**放一个 `src/data/projects.<语言码>.yaml` 就发布该语言、删文件即下线。** 页面顶部自动出现语言切换（纯链接，不引入 JS）。仓库**已自带** `src/data/projects.en.yaml`（作者本人的英文翻译）——换成你自己的译文即可用，不需要就删掉。
+
+翻译文件不是完整配置，而是一张「原文 → 译文」映射，**键是主文件里的原文**，不看顺序、不必写全，没写的自动回退主文件：
+
+```yaml
+# projects.en.yaml
+头衔: Independent developer
+介绍: Building AiShort and a 30+ project OSS matrix.
+页脚: Project #022 of 365 Open Source
+
+作品:                 # 键 = 主文件里作品的「名字」
+  AiShort:
+    介绍: AI prompt community with 18 UI languages.
+  千世书 Thousand Lives:
+    名字: Thousand Lives
+    介绍: An AI text game, fully client-side.
+
+文字:                 # 零散原文 → 译文：分类名、数据标签、链接标签
+  开源项目: Open-source projects
+  联系我: Contact
+```
+
+规则：
+
+- **可翻译**：顶层的 `头衔` `介绍` `页脚`；作品的 `名字` `介绍` `出处`；`文字` 字典覆盖分类名、数据标签、链接标签。
+- **不可翻译**（永远取主文件）：`链接` `源码` `图` `日期` `重点` 等结构性字段——结构只有一份，两边不会跑偏。
+- 文件名里的码就是语言：`projects.ja.yaml` → `/ja/`。想要三种语言就放三个文件。
+- 键写错了（比如改了中文名字却忘了改翻译文件）构建时会打一条 warning 指出是哪个键，页面照常出，不会挂。
+- 主文件里两条作品同名时会告警，翻译只作用于第一条。
+
 ## OG 分享图
 
 `public/og.png` 是社交分享卡片图。改 `scripts/og-template.html` 后用浏览器以 1200×630 截图替换，或直接放一张自己设计的图。
+
+## 关于 365 开源计划
+
+[365 开源计划](https://github.com/rockbenben/365opensource) 的第 **#022** 个项目——一个人 + AI，一年 300+ 个开源项目。[提交你的需求 →](https://365.aishort.top/) · [Discord](https://discord.gg/PZTQfJ4GjX) · [Telegram](https://t.me/aishort_top)
