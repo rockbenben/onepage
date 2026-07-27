@@ -1,0 +1,81 @@
+---
+// 开源项目节：带真实缩略图的小卡网格（最多 opensourceMax 个，其余靠「显示更多」跳 GitHub）。
+// 缩略图 = 仓库自定义 Social preview（有则用）否则 GitHub 自动卡片（构建时抓好缓存，运行时零请求，见 fetch-github.mjs）。
+import { repoOf, fmtStars, thumbOf, ghUser } from "../lib/data";
+import { fmt } from "../i18n/ui";
+import SectionHeader from "./SectionHeader.astro";
+
+const { items, t, max, descriptions } = Astro.props;
+// 开源描述按语言覆盖（zh 主文件 / en 翻译文件），按仓库名查（大小写不敏感，与开源命名一致）；没写就用 GitHub 原描述
+const descMap = new Map(Object.entries(descriptions ?? {}).map(([k, v]) => [k.toLowerCase(), v]));
+const descOf = (it: any) => descMap.get(String(it.key).toLowerCase()) ?? it.desc;
+const shown = max ? items.slice(0, max) : items;
+const hasMore = !!max && items.length > max;
+const moreHref = ghUser ? `https://github.com/${ghUser}?tab=repositories` : undefined;
+
+// GitHub linguist 语言色（常见子集 + 兜底灰）
+const LANG_COLOR: Record<string, string> = {
+  TypeScript: "#3178c6", JavaScript: "#f1e05a", Python: "#3572A5",
+  HTML: "#e34c26", CSS: "#563d7c", Vue: "#41b883", Astro: "#ff5a03",
+  Shell: "#89e051", Go: "#00ADD8", Rust: "#dea584", Java: "#b07219",
+  "C++": "#f34b7d", C: "#555555", "C#": "#178600", Ruby: "#701516",
+  PHP: "#4F5D95", Swift: "#F05138", Kotlin: "#A97BFF", Dart: "#00B4AB",
+  MDX: "#fcb32c", "Jupyter Notebook": "#DA5B0B", Svelte: "#ff3e00",
+};
+---
+
+<section class="mt-16">
+  <SectionHeader title={t.opensourceTitle} />
+  <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    {shown.map((it: any) => {
+      const r = repoOf(it);
+      const lang = r?.language as string | undefined;
+      const main = it.link ?? it.source;
+      const img = thumbOf(it);
+      const desc = descOf(it);
+      return (
+        <article class="card flex flex-col overflow-hidden">
+          {img && main && (
+            <a href={main} target="_blank" rel="noopener noreferrer"
+              class="thumb block aspect-[1200/630] overflow-hidden border-b border-(--color-line)">
+              <img src={img} alt={fmt(t.thumbAlt, { name: it.name })} loading="lazy" class="h-full w-full object-cover" />
+            </a>
+          )}
+          <div class="flex grow flex-col p-4">
+            <div class="flex items-baseline justify-between gap-3">
+              {main ? (
+                <a href={main} target="_blank" rel="noopener noreferrer" class="link-quiet min-w-0 truncate font-semibold">{it.name}</a>
+              ) : (
+                <span class="min-w-0 truncate font-semibold">{it.name}</span>
+              )}
+              {r && r.stars >= 10 && <span class="chip chip-star shrink-0">★ {fmtStars(r.stars)}</span>}
+            </div>
+            {desc && <p class="mt-1.5 line-clamp-2 grow text-sm leading-relaxed text-(--color-ink-2)">{desc}</p>}
+            <div class="mt-3 flex items-center justify-between gap-3">
+              {lang ? (
+                <span class="mono flex items-center gap-1.5 text-xs text-(--color-ink-2)">
+                  <span class="inline-block size-2.5 rounded-full" style={`background:${LANG_COLOR[lang] ?? "#8b949e"}`} aria-hidden="true"></span>
+                  {lang}
+                </span>
+              ) : (
+                <span></span>
+              )}
+              {it.source && (
+                <a href={it.source} target="_blank" rel="noopener noreferrer"
+                  class="mono text-xs text-(--color-ink-2) hover:text-(--color-accent) hover:underline">{t.source} ↗</a>
+              )}
+            </div>
+          </div>
+        </article>
+      );
+    })}
+  </div>
+  {moreHref && (
+    hasMore ? (
+      <a href={moreHref} target="_blank" rel="noopener noreferrer" class="btn mono mt-8 inline-block text-sm">{t.opensourceMore} →</a>
+    ) : (
+      <a href={moreHref} target="_blank" rel="noopener noreferrer"
+        class="mono mt-6 inline-block text-sm text-(--color-ink-2) hover:text-(--color-accent) hover:underline">github.com/{ghUser} ↗</a>
+    )
+  )}
+</section>
