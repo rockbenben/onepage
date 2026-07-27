@@ -1,20 +1,16 @@
 ---
-const { title, hint, more, moreLabel, count } = Astro.props;
+// 区块小标题：标题 + 可选副标题（轻量说明）+ 可选自动计数
+const { title, subtitle, count } = Astro.props;
 ---
 
 {
-  (title || more) && (
+  title && (
     <div class="flex items-baseline justify-between gap-4">
       <h2 class="text-2xl font-bold">
         {title}
+        {subtitle && <span class="ml-2.5 text-sm font-normal text-(--color-ink-2)">{subtitle}</span>}
         {count != null && <span class="mono ml-2.5 text-sm font-normal text-(--color-ink-2)">{count}</span>}
-        {hint && <span class="ml-3 text-sm font-normal text-(--color-ink-2)">{hint}</span>}
       </h2>
-      {more && (
-        <a class="mono shrink-0 text-xs text-(--color-accent) hover:text-(--color-accent-2) hover:underline" href={more} target="_blank" rel="noopener noreferrer">
-          {moreLabel}
-        </a>
-      )}
     </div>
   )
 }

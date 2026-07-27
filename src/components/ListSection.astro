@@ -1,36 +1,51 @@
 ---
-import { repoOf, fmtStars, ghUrl } from "../lib/data";
+// 分组清单：一组作品一段。标题 = 组名（无组名回退「作品」）+ 自动计数。
+// 行 = 日期（mono 左列）+ 小缩略图（有则显示）+ 名字（有 link 则链接）+ 介绍 + ★ + 出处（右侧小字）。
+import { repoOf, fmtStars, thumbOf } from "../lib/data";
 import SectionHeader from "./SectionHeader.astro";
 
-const { section } = Astro.props;
+const { group, t, thumbs = true } = Astro.props;
+// 组内只要有一条写了日期，全组都占住日期列（没写的留空位），让名字左缘对齐成一列
+const hasDate = group.items.some((it: any) => it.date);
 ---
 
 <section class="mt-16">
-  <SectionHeader {...section} count={section.count ? section.items.length : undefined} />
+  <SectionHeader title={group.title ?? t.worksTitle} count={group.items.length} />
   <ul class="mt-4 divide-y divide-(--color-line)">
-    {section.items.map((it: any) => {
-      const r = repoOf(it.repo);
-      const src = ghUrl(it.repo);
-      // 标题指向源码仓库（开源清单的正主）；无仓库时退回 url（文章、案例等）
-      const nameHref = src ?? it.url;
-      // 右侧只在有线上可用链接时给 Demo
-      const demoHref = it.demo ?? (src && it.url ? it.url : undefined);
+    {group.items.map((it: any) => {
+      const r = repoOf(it);
+      const img = thumbOf(it);
       return (
-        <li class="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3.5">
-          {it.date && <span class="mono w-24 shrink-0 text-xs text-(--color-ink-2)">{it.date}</span>}
-          <div class="min-w-0 grow">
-            {nameHref ? (
-              <a href={nameHref} target="_blank" rel="noopener noreferrer" class="link-quiet font-medium">{it.name}</a>
+        <li class="flex items-baseline gap-x-4 py-3.5">
+          {hasDate &&
+            (it.date ? (
+              <span class="mono w-24 shrink-0 text-xs text-(--color-ink-2)">{it.date}</span>
             ) : (
-              <span class="font-medium">{it.name}</span>
-            )}
-            {it.desc && <p class="mt-0.5 text-sm leading-relaxed text-(--color-ink-2)">{it.desc}</p>}
-          </div>
-          {r && r.stars >= 10 && <span class="chip chip-star">★ {fmtStars(r.stars)}</span>}
-          {it.meta && <span class="mono shrink-0 text-xs text-(--color-ink-2)">{it.meta}</span>}
-          {demoHref && (
-            <a class="mono shrink-0 text-xs font-semibold text-(--color-accent) hover:text-(--color-accent-2) hover:underline" href={demoHref} target="_blank" rel="noopener noreferrer">{it.demoLabel ?? "Demo"}</a>
+              <span class="w-24 shrink-0" aria-hidden="true"></span>
+            ))}
+          {thumbs && img && (
+            <img src={img} alt="" loading="lazy"
+              class="size-10 shrink-0 self-center rounded border border-(--color-line) object-cover" />
           )}
+          <div class="min-w-0 grow">
+            {/* 首行：名字（左）+ 星标 / 出处 / 源码 聚成一簇（右），逐行位置一致 */}
+            <div class="flex items-baseline justify-between gap-3">
+              {it.link ? (
+                <a href={it.link} target="_blank" rel="noopener noreferrer" class="link-quiet min-w-0 truncate font-medium">{it.name}</a>
+              ) : (
+                <span class="min-w-0 truncate font-medium">{it.name}</span>
+              )}
+              <span class="flex shrink-0 items-baseline gap-3">
+                {r && r.stars >= 10 && <span class="chip chip-star">★ {fmtStars(r.stars)}</span>}
+                {it.via && <span class="mono text-xs text-(--color-ink-2)">{it.via}</span>}
+                {it.source && (
+                  <a href={it.source} target="_blank" rel="noopener noreferrer"
+                    class="mono text-xs text-(--color-ink-2) hover:text-(--color-accent) hover:underline">{t.source} ↗</a>
+                )}
+              </span>
+            </div>
+            {it.desc && <p class="mt-0.5 line-clamp-2 text-sm leading-relaxed text-(--color-ink-2)">{it.desc}</p>}
+          </div>
         </li>
       );
     })}

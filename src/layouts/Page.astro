@@ -1,0 +1,86 @@
+---
+import "../styles/global.css";
+import { gh, opensourceItems } from "../lib/data";
+import Hero from "../components/Hero.astro";
+import FeaturedSection from "../components/FeaturedSection.astro";
+import ListSection from "../components/ListSection.astro";
+import OpenSourceSection from "../components/OpenSourceSection.astro";
+import StatsSection from "../components/StatsSection.astro";
+import { getUI, fmt } from "../i18n/ui";
+
+const { site, locales, current } = Astro.props;
+const t = getUI(site.lang);
+
+const title = site.title ? `${site.name} · ${site.title}` : site.name;
+// 仅当用户写了「颜色」时内联覆盖强调色；否则用主题自带（CSS 里的 --color-accent）
+const accentStyle = site.accent
+  ? `--color-accent:${site.accent.accent};--color-accent-2:${site.accent.accent2}`
+  : undefined;
+
+// JSON-LD 的 sameAs：链接里的第一条 GitHub 地址
+const githubUrl = site.links.find((l: any) => /github\.com/i.test(l.url))?.url;
+
+// 绝对地址：site.url 没填时全部 SEO 链接标签整体跳过。
+// 用字符串拼接而非 new URL(href, site.url) —— href 是根绝对路径（"/"、"/en/"），
+// 若 site.url 本身带子路径（如 https://user.github.io/onepage），
+// new URL(href, base) 会把 href 当成「从根开始」而整段替换掉 base 的路径部分，
+// canonical/hreflang/og:url 就会指到 https://user.github.io/en/ 这种 404 地址
+const here = locales.find((l: any) => l.code === current);
+const abs = (href: string) =>
+  site.url ? new URL(site.url.replace(/\/+$/, "") + href).href : undefined;
+const canonical = abs(here?.href ?? "/");
+// 单语站不输出任何语言相关标记，产出与加多语言前一致
+const alternates = site.url && locales.length > 1 ? locales : [];
+const ogLocale = (code: string) => code.replace("-", "_");
+
+// Person 结构化数据：从 yaml 自动生成，帮助搜索/AI 引擎理解站点
+const jsonLd = JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "Person",
+  name: site.name,
+  ...(site.title && { jobTitle: site.title }),
+  ...(site.intro && { description: site.intro }),
+  ...(canonical && { url: canonical }),
+  ...(githubUrl && { sameAs: [githubUrl] }),
+});
+---
+
+<html lang={site.lang} data-theme={site.themeName} data-appearance={site.appearance} style={accentStyle}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#fafaf7" />
+    {canonical && <link rel="canonical" href={canonical} />}
+    {alternates.map((l: any) => <link rel="alternate" hreflang={l.code} href={abs(l.href)} />)}
+    {alternates.length > 0 && <link rel="alternate" hreflang="x-default" href={abs("/")} />}
+    <link rel="preload" href="/fonts/ibm-plex-mono-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/inter-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <script type="application/ld+json" set:html={jsonLd} />
+    {site.intro && <meta name="description" content={site.intro} />}
+    <meta property="og:title" content={title} />
+    {site.intro && <meta property="og:description" content={site.intro} />}
+    {canonical && <meta property="og:url" content={canonical} />}
+    {site.url && <meta property="og:image" content={site.url.replace(/\/+$/, "") + "/og.png"} />}
+    {site.url && <meta name="twitter:card" content="summary_large_image" />}
+    {alternates.length > 0 && <meta property="og:locale" content={ogLocale(site.lang)} />}
+    {alternates
+      .filter((l: any) => l.code !== current)
+      .map((l: any) => <meta property="og:locale:alternate" content={ogLocale(l.code)} />)}
+  </head>
+  <body class="mx-auto max-w-5xl px-5">
+    <Hero site={site} locales={locales} current={current} />
+    {site.stats.length > 0 && <StatsSection stats={site.stats} />}
+    {site.featured.length > 0 && <FeaturedSection items={site.featured} t={t} />}
+    {site.groups.map((g: any) => <ListSection group={g} t={t} />)}
+    {opensourceItems.length > 0 && <OpenSourceSection items={opensourceItems} t={t} max={site.opensourceMax} descriptions={site.opensourceDescriptions} />}
+    <footer class="mono mt-10 border-t border-(--color-line) py-10 text-xs text-(--color-ink-2)">
+      <p>
+        © {new Date().getFullYear()} {site.name}
+        {site.footer && <Fragment> · <span set:html={site.footer} /></Fragment>}
+        {gh.fetched && ` · ${fmt(t.updated, { date: gh.fetched.slice(0, 10) })}`}
+      </p>
+    </footer>
+  </body>
+</html>

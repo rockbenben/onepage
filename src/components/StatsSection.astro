@@ -1,18 +1,29 @@
 ---
+// 数据条：一排数字。auto="stars" 取 GitHub 总星数、auto="repos" 取非 fork/归档的公开仓库数（构建时抓）。
 import { gh } from "../lib/data";
-import SectionHeader from "./SectionHeader.astro";
 
-const { section } = Astro.props;
+const { stats } = Astro.props;
+// toLocaleString 只对数字（千位分隔）；字符串（如「30+」「18 种」）原样显示
+const fmtVal = (v: string | number) => (typeof v === "number" ? v.toLocaleString() : v);
+// 自动数不显示零头：取整到十位 + 「+」（10885→10,880+、53→50+）
+const floorTen = (n: number) => Math.floor(n / 10) * 10;
+const statText = (s: any) =>
+  s.auto === "repos"
+    ? `${floorTen(gh.repoCount).toLocaleString()}+`
+    : s.auto === "forks"
+      ? `${floorTen(gh.totalForks).toLocaleString()}+`
+      : s.auto === "stars"
+        ? `${floorTen(gh.totalStars).toLocaleString()}+`
+        : fmtVal(s.value);
 ---
 
 <section class="mt-2">
-  <SectionHeader {...section} />
-  <div class="flex flex-wrap divide-x divide-(--color-line) border-y border-(--color-line)">
-    {section.items.map((s: any) => {
-      const value = s.auto === "total_stars" && gh.totalStars > 0 ? gh.totalStars : s.value;
+  <!-- 窄屏 2 列网格（gap 分隔，避免 flex-wrap 换行时行首留悬空竖线）；sm+ 恢复单排竖线分隔 -->
+  <div class="grid grid-cols-2 gap-x-6 gap-y-4 border-y border-(--color-line) py-5 sm:flex sm:flex-wrap sm:gap-0 sm:py-0 sm:divide-x sm:divide-(--color-line)">
+    {stats.map((s: any) => {
       return (
-        <div class="min-w-[130px] flex-1 py-5 pl-5 first:pl-0">
-          <div class="stat-num text-2xl sm:text-3xl">{value.toLocaleString()}{s.suffix}</div>
+        <div class="sm:min-w-[130px] sm:flex-1 sm:py-5 sm:pl-5 sm:first:pl-0">
+          <div class="stat-num text-2xl sm:text-3xl">{statText(s)}</div>
           <div class="mt-1 text-xs text-(--color-ink-2) sm:text-sm">{s.label}</div>
         </div>
       );

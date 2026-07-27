@@ -1,45 +1,49 @@
 ---
-import { repoOf, fmtStars, ghUrl, thumbOf } from "../lib/data";
+// 重点大卡：名字 / 介绍 / 缩略图 / demo 链接 / 源码 / ★（tagline、tags 已死）
+import { repoOf, fmtStars, thumbOf } from "../lib/data";
+import { fmt } from "../i18n/ui";
 import SectionHeader from "./SectionHeader.astro";
 
-const { section } = Astro.props;
+const { items, t } = Astro.props;
 ---
 
 <section class="mt-16">
-  <SectionHeader {...section} />
+  <SectionHeader title={t.featuredTitle} subtitle={t.featuredSubtitle} />
   <div class="mt-6 grid gap-5 md:grid-cols-3">
-    {section.items.map((f: any) => {
-      const r = repoOf(f.repo);
+    {items.map((f: any) => {
+      const r = repoOf(f);
       const img = thumbOf(f);
-      const src = ghUrl(f.repo);
-      const main = f.demo ?? f.url;
+      const main = f.link ?? f.source;
       return (
         <article class="card flex flex-col overflow-hidden">
-          {img && (
-            <a href={main ?? src} target="_blank" rel="noopener noreferrer" class="thumb block aspect-[1200/630] overflow-hidden border-b border-(--color-line)">
-              <img src={img} alt={`${f.name} 预览图`} loading="lazy" class="h-full w-full object-contain" />
+          {img && main && (
+            <a href={main} target="_blank" rel="noopener noreferrer" class="thumb block aspect-[1200/630] overflow-hidden border-b border-(--color-line)">
+              <img src={img} alt={fmt(t.thumbAlt, { name: f.name })} loading="lazy" class="h-full w-full object-contain" />
             </a>
+          )}
+          {img && !main && (
+            <div class="thumb block aspect-[1200/630] overflow-hidden border-b border-(--color-line)">
+              <img src={img} alt={fmt(t.thumbAlt, { name: f.name })} loading="lazy" class="h-full w-full object-contain" />
+            </div>
           )}
           <div class="flex grow flex-col p-6">
             <div class="flex items-center justify-between">
               <h3 class="text-lg font-semibold">{f.name}</h3>
               {r && r.stars >= 10 && <span class="chip chip-star">★ {fmtStars(r.stars)}</span>}
             </div>
-            {f.tagline && <p class="mt-2 font-medium">{f.tagline}</p>}
             {f.desc && <p class="mt-2 grow text-sm leading-relaxed text-(--color-ink-2)">{f.desc}</p>}
-            {f.tags.length > 0 && (
-              <div class="mt-4 flex flex-wrap gap-2">
-                {f.tags.map((t: string) => <span class="chip">{t}</span>)}
+            {(f.link || f.source) && (
+              <div class="mt-3 flex items-center justify-between gap-4 text-sm">
+                {f.link && (
+                  <a class="inline-block py-2 font-medium text-(--color-accent) hover:underline" href={f.link} target="_blank" rel="noopener noreferrer">
+                    {t.demo} →
+                  </a>
+                )}
+                {f.source && (
+                  <a class="inline-block py-2 text-(--color-ink-2) hover:text-(--color-accent) hover:underline" href={f.source} target="_blank" rel="noopener noreferrer">{t.source} ↗</a>
+                )}
               </div>
             )}
-            <div class="mt-3 flex gap-4 text-sm">
-              {main && (
-                <a class="inline-block py-2 font-medium text-(--color-accent) hover:underline" href={main} target="_blank" rel="noopener noreferrer">
-                  {f.demoLabel ?? "在线试用"} →
-                </a>
-              )}
-              {src && <a class="inline-block py-2 text-(--color-ink-2) hover:text-(--color-ink) hover:underline" href={src} target="_blank" rel="noopener noreferrer">源码</a>}
-            </div>
           </div>
         </article>
       );
