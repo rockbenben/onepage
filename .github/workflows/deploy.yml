@@ -21,16 +21,18 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # 供 fetch 脚本提升 GitHub API 限额
     steps:
       - name: Checkout 🛎️
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
 
       - name: Install dependencies
         run: npm i
+      - name: Validate config
+        run: npm run validate
       - name: Run tests
         run: npm test
       - name: Build website
