@@ -43,7 +43,7 @@ npm run build     # fetch + build → dist/
 - **The only required field is `名字` (name)**: a minimal 6-line file already builds a complete page; every other field simply doesn't exist until you add it
 - **Field names in Chinese or English**: `名字/name`, `作品/works`, `重点/star`… write either, both are recognized
 - **Layout is automatic**: a work marked `重点` (star) becomes a large card with an image, works sharing a `分类` (group) get a subheading, `数据` (stats) become a numbers strip — every layout decision lives in the renderer, not your config
-- **Manual first, automatic as fallback**: thumbnails, avatar, and star counts can all be set by hand; leave them out and the build fetches them (og:image from the linked page, GitHub API), **optimizes** them (resize to card size + WebP, ~90% lighter), and caches them locally
+- **Manual first, automatic as fallback**: thumbnails, avatar, and star counts can all be set by hand; leave them out and the build fetches them (og:image from the linked page, GitHub API), **optimizes** them (resize to card size + WebP, ~80% lighter), and caches them locally
 - **Zero JS, zero external requests**: Astro 5 + Tailwind 4, pure static output, fonts and images all self-hosted (the `/edit` page aside)
 - **GitHub features are optional**: put a GitHub URL in your links and star counts and the avatar update themselves; leave it out and the build still works
 - **A second language is optional**: drop in a `src/data/projects.<code>.yaml` translation file and the site gains that language version plus a header switcher; delete the file and it goes offline
