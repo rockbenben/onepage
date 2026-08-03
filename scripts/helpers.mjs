@@ -37,14 +37,22 @@ export function ghUserFrom(url) {
   return url?.match(/github\.com\/([^/?#]+)/)?.[1] ?? null;
 }
 
-/** 从 HTML 提取 og:image 内容；容忍属性顺序、引号风格（含压缩后的无引号属性）、name= 写法 */
+const ENTITIES = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", "#39": "'" };
+
+/**
+ * 从 HTML 提取 og:image 内容；容忍属性顺序、引号风格（含压缩后的无引号属性）、name= 写法。
+ * 必须反转义 HTML 实体：GitHub 仓库自定义 Social preview 的 og:image 现在是带签名的
+ * 预签名 URL（X-Amz-Signature… &jwt=…），属性里 & 一律写成 &amp;，不还原就会把查询参数
+ * 粘成一个，下载直接 401，整站缩略图静默消失。
+ */
 export function parseOgImage(html) {
   const tag = html.match(
     /<meta[^>]*(?:property|name)\s*=\s*["']?og:image(?:["']|(?=[\s/>]))[^>]*>/i,
   )?.[0];
   if (!tag) return null;
   const m = tag.match(/content\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/i);
-  return m?.[1] ?? m?.[2] ?? m?.[3] ?? null;
+  const raw = m?.[1] ?? m?.[2] ?? m?.[3] ?? null;
+  return raw === null ? null : raw.replace(/&(amp|lt|gt|quot|apos|#39);/g, (_, e) => ENTITIES[e]);
 }
 
 const CT_EXT = {

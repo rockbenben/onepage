@@ -52,6 +52,13 @@ describe("parseOgImage", () => {
     // og:image:width 不能被误当成 og:image
     expect(parseOgImage(`<meta property=og:image:width content=1280 />`)).toBeNull();
   });
+  it("反转义 HTML 实体（GitHub 预签名 Social preview 的 &amp; 不还原会 401）", () => {
+    expect(
+      parseOgImage(
+        `<meta property="og:image" content="https://repository-images.githubusercontent.com/1/x?X-Amz-Expires=300&amp;X-Amz-Signature=abc&amp;jwt=ey.z" />`,
+      ),
+    ).toBe("https://repository-images.githubusercontent.com/1/x?X-Amz-Expires=300&X-Amz-Signature=abc&jwt=ey.z");
+  });
 });
 
 describe("extFromContentType", () => {
