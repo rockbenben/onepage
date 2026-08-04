@@ -81,12 +81,25 @@ function ownRepo(item) {
   return r && ghUser && r.owner.toLowerCase() === ghUser.toLowerCase() ? r.repo : null;
 }
 
-const get = (url, headers = {}) =>
-  fetch(url, {
+// 429 退避重试：Actions 里连抓十几张时 opengraph.githubassets.com 会突发限流。
+// 请求间均匀加间隙没用（本就隔 ~0.6s，限的是窗口配额），只在挨限流时等，认 Retry-After。
+const get = async (url, headers = {}, init = {}, left = 2) => {
+  const res = await fetch(url, {
     redirect: "follow",
     signal: AbortSignal.timeout(TIMEOUT),
     headers: { "User-Agent": "Mozilla/5.0 (compatible; portfolio-build)", ...headers },
+    ...init,
   });
+  if (res.status !== 429 || left <= 0) return res;
+  // GitHub 官方：有 retry-after 就等够，否则指数退避；加抖动防多任务撞同一窗口
+  const after = Number(res.headers.get("retry-after"));
+  const wait =
+    Number.isFinite(after) && after > 0
+      ? Math.min(after, 60) * 1000
+      : [5000, 20000][2 - left] * (1 + Math.random()); // 5–10s → 20–40s
+  await new Promise((r) => setTimeout(r, wait));
+  return get(url, headers, init, left - 1);
+};
 
 /* ---------- 1) GitHub 仓库数据 ---------- */
 // 开源节配置（供下方抓开源缩略图用，与 src/lib/schema.ts / data.ts 同义）
@@ -151,6 +164,56 @@ if (wantGh) {
   console.log("· 未配置 GitHub 或未引用仓库，跳过 GitHub API");
 }
 
+/* ---------- 1.5) 开源节选仓 + 批量查自定义 Social preview ---------- */
+// 选仓提前到这里，好和作品仓库一起进下面那次 GraphQL 批量查询
+const picked =
+  osThreshold !== undefined && ghUser && Object.keys(ghMap).length
+    ? selectOpensourceRepos(ghMap, {
+        usedRepos: new Set(works.map((w) => ownRepo(w)).filter(Boolean).map((s) => s.toLowerCase())),
+        threshold: osThreshold,
+        since: osSince,
+        starLine: osStarLine,
+        max: osMax,
+        exclude: osExclude,
+      })
+    : [];
+
+/**
+ * 一次 GraphQL 批量拿「哪些仓库设了自定义 Social preview、图在哪」。
+ * GitHub 的 usesCustomOpenGraphImage / openGraphImageUrl 是权威答案，省掉逐仓库抓
+ * github.com 页面正则解析 og:image（每仓库多一次 HTTP，且实测同一仓库两次能返回不同结果）。
+ * 只收 usesCustomOpenGraphImage 为真的——没设的留空，好让作品继续走「站点 og > 自动卡」优先级。
+ * 需要 token（GraphQL 强制鉴权）；无 token / 查询失败返回 null，调用方回退抓页面。
+ * ponytail: 预签名 URL 5 分钟过期，仓库多到下载跑超 5 分钟会 401，到时改成分批查。
+ */
+async function fetchCustomPreviews(user, repos) {
+  if (!process.env.GITHUB_TOKEN || !user || !repos.length) return null;
+  try {
+    const q = `{${repos.map((r, i) => `r${i}:repository(owner:"${user}",name:"${r}"){usesCustomOpenGraphImage openGraphImageUrl}`).join(" ")}}`;
+    const res = await get("https://api.github.com/graphql", {
+      Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+      "Content-Type": "application/json",
+    }, { method: "POST", body: JSON.stringify({ query: q }) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const { data } = await res.json();
+    if (!data) throw new Error("无 data 字段");
+    const map = {};
+    repos.forEach((r, i) => {
+      const n = data[`r${i}`];
+      if (n?.usesCustomOpenGraphImage && n.openGraphImageUrl) map[r] = n.openGraphImageUrl;
+    });
+    console.log(`✔ ${Object.keys(map).length}/${repos.length} 个仓库有自定义 Social preview（GraphQL）`);
+    return map;
+  } catch (e) {
+    console.warn(`⚠ GraphQL 查 Social preview 失败：${e.message}（回退逐仓库抓页面）`);
+    return null;
+  }
+}
+
+const ogMap = await fetchCustomPreviews(ghUser, [
+  ...new Set([...works.map((w) => ownRepo(w)).filter(Boolean), ...picked.map(([n]) => n)]),
+]);
+
 /* ---------- 通用下载（增量缓存 + 构建时优化） ---------- */
 // 缩略图卡片显示 ~330px，留 2x 视网膜余量 → 上限 800px 宽；转 WebP 质量 80，
 // 把 1200×630 原图（实测常 60–150K）压到 ~12–25K，砍掉 ~70–85% 首屏图片重量。
@@ -161,8 +224,9 @@ async function download(url, dir, name) {
   if (!FORCE && existsSync(resolve(dir, out))) return out; // 已缓存（优化后固定 .webp）
   const res = await get(url);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  // 不按 content-type 拦：GitHub 自定义 Social preview 走 S3 预签名 URL，回的是
+  // binary/octet-stream，拦下来的恰好全是设了 preview 的仓库。由 sharp 判断是不是图片。
   const ct = res.headers.get("content-type") ?? "";
-  if (!ct.startsWith("image/")) throw new Error(`非图片响应（${ct}）`);
   const input = Buffer.from(await res.arrayBuffer());
   try {
     // 缩到卡片尺寸（不放大）+ 压成 WebP（animated 兼容极少数动图预览）
@@ -172,8 +236,9 @@ async function download(url, dir, name) {
       .toBuffer();
     await writeFile(resolve(dir, out), webp);
     return out;
-  } catch {
-    // sharp 处理不了的怪异格式 → 退回原图，保证有图
+  } catch (e) {
+    // sharp 读不了：确是图片响应就退回原图保证有图，否则是 HTML/错误页，别写成 .png
+    if (!ct.startsWith("image/")) throw new Error(`非图片响应（${ct}）：${e.message}`);
     const raw = name + extFromContentType(ct);
     await writeFile(resolve(dir, raw), input);
     return raw;
@@ -199,11 +264,16 @@ async function resolveThumbUrl({ imageRemote = null, repo = null, site = null },
   let autoCard = null;
   if (repo && ghUser) {
     autoCard = `https://opengraph.githubassets.com/1/${ghUser}/${repo}`;
-    try {
-      const og = await ogImageUrl(`https://github.com/${ghUser}/${repo}`);
-      if (og.includes("repository-images.githubusercontent.com")) return og; // 自定义 Social preview
-    } catch {
-      /* 仓库页抓取失败，落到站点 og / 自动卡片 */
+    if (ogMap) {
+      if (ogMap[repo]) return ogMap[repo]; // GraphQL 已确认有自定义 Social preview
+      // 没有就直接落到站点 og / 自动卡片，不必再抓页面
+    } else {
+      try {
+        const og = await ogImageUrl(`https://github.com/${ghUser}/${repo}`);
+        if (og.includes("repository-images.githubusercontent.com")) return og; // 自定义 Social preview
+      } catch {
+        /* 仓库页抓取失败，落到站点 og / 自动卡片 */
+      }
     }
   }
   if (site) {
@@ -264,33 +334,22 @@ for (const item of works) {
   }
 }
 
-/* ---------- 4) 开源节缩略图（最多 osMax 个；键 = 仓库名，与 data.ts 的 item.key 一致）---------- */
-if (osThreshold !== undefined && ghUser && Object.keys(ghMap).length) {
-  const usedRepos = new Set(works.map((w) => ownRepo(w)).filter(Boolean).map((s) => s.toLowerCase()));
-  const picked = selectOpensourceRepos(ghMap, {
-    usedRepos,
-    threshold: osThreshold,
-    since: osSince,
-    starLine: osStarLine,
-    max: osMax,
-    exclude: osExclude,
-  });
-  for (const [name] of picked) {
-    if (assets.shots[name]) continue; // 已在作品循环缓存过（同名）
-    try {
-      const cached = EXTS.map((e) => name + e).find((f) => existsSync(resolve(shotsDir, f)));
-      if (cached && !FORCE) {
-        assets.shots[name] = `/shots/${cached}`;
-        continue;
-      }
-      // 仓库自定义 Social preview 优先，否则 GitHub 自动卡片；长尾仓库 homepage 常是通用图/商店图，故跳过（site: null）
-      const imgUrl = await resolveThumbUrl({ repo: name, site: null }, ghUser);
-      const f = await download(imgUrl, shotsDir, name);
-      assets.shots[name] = `/shots/${f}`;
-      console.log(`✔ 开源缩略图 ${name} → public/shots/${f}`);
-    } catch (e) {
-      console.warn(`⚠ 开源缩略图 ${name} 失败：${e.message}`);
+/* ---------- 4) 开源节缩略图（picked 见 1.5；键 = 仓库名，与 data.ts 的 item.key 一致）---------- */
+for (const [name] of picked) {
+  if (assets.shots[name]) continue; // 已在作品循环缓存过（同名）
+  try {
+    const cached = EXTS.map((e) => name + e).find((f) => existsSync(resolve(shotsDir, f)));
+    if (cached && !FORCE) {
+      assets.shots[name] = `/shots/${cached}`;
+      continue;
     }
+    // 仓库自定义 Social preview 优先，否则 GitHub 自动卡片；长尾仓库 homepage 常是通用图/商店图，故跳过（site: null）
+    const imgUrl = await resolveThumbUrl({ repo: name, site: null }, ghUser);
+    const f = await download(imgUrl, shotsDir, name);
+    assets.shots[name] = `/shots/${f}`;
+    console.log(`✔ 开源缩略图 ${name} → public/shots/${f}`);
+  } catch (e) {
+    console.warn(`⚠ 开源缩略图 ${name} 失败：${e.message}`);
   }
 }
 
