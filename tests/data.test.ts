@@ -202,6 +202,20 @@ describe("buildOpensourceItems：过滤/去重/排序/映射", () => {
     expect(names).toContain("low-new"); // 尾巴按最近更新取前 1（low-new 2026-07 排在 low-mid 前）
     expect(names).not.toContain("low-mid");
   });
+  it("开源上限向上对齐到网格列数（3 列网格，末行不留残缺）", () => {
+    // 高星组 2（star>30）+ 尾巴 4 = 6 个候选；site 没写 starLine，走默认 30
+    const r = {
+      h1: { stars: 500, updated: "", url: "https://github.com/u/h1", fork: false, archived: false, created: "2024-01-01T00:00:00Z" },
+      h2: { stars: 100, updated: "", url: "https://github.com/u/h2", fork: false, archived: false, created: "2024-01-01T00:00:00Z" },
+      t1: { stars: 1, updated: "2026-06-01T00:00:00Z", url: "https://github.com/u/t1", fork: false, archived: false, created: "2026-05-01T00:00:00Z" },
+      t2: { stars: 1, updated: "2026-05-01T00:00:00Z", url: "https://github.com/u/t2", fork: false, archived: false, created: "2026-05-01T00:00:00Z" },
+      t3: { stars: 1, updated: "2026-04-01T00:00:00Z", url: "https://github.com/u/t3", fork: false, archived: false, created: "2026-05-01T00:00:00Z" },
+      t4: { stars: 1, updated: "2026-03-01T00:00:00Z", url: "https://github.com/u/t4", fork: false, archived: false, created: "2026-05-01T00:00:00Z" },
+    };
+    expect(buildOpensourceItems(r as any, site, "u", 2).length).toBe(6); // 2+2=4 → 向上补到 6
+    expect(buildOpensourceItems(r as any, site, "u", 1).length).toBe(3); // 2+1=3 已整除，不补
+    expect(buildOpensourceItems(r as any, site, "u", 0).length).toBe(2); // 只要高星组，不补
+  });
   it("不传 max → 全部列出（与加 max 之前的行为一致）", () => {
     const names = buildOpensourceItems(repos as any, site, "u").map((i) => i.name);
     expect(names).toContain("low-mid");
@@ -225,9 +239,5 @@ describe("opensourceItems / opensourceTotal（真实 demo 配置）", () => {
 
   it("opensourceTotal 等于完整候选数", () => {
     expect(opensourceTotal).toBe(opensourceAll.length);
-  });
-
-  it("展示条数是 3 的倍数（3 列网格，末行不留残缺）", () => {
-    expect(opensourceItems.length % 3).toBe(0);
   });
 });
