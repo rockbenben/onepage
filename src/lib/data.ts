@@ -4,7 +4,7 @@ import { normalizeSite, type SiteData, type WorkItem } from "./schema";
 import { mergeLocale } from "./merge";
 import { buildLocales, type Locale } from "./locales";
 // @ts-ignore -- 纯 ESM 模块无类型声明
-import { repoFromUrl, fixUrl, loadConfig, selectOpensourceRepos } from "../../scripts/helpers.mjs";
+import { repoFromUrl, fixUrl, loadConfig, selectOpensourceRepos, DEFAULT_STAR_LINE } from "../../scripts/helpers.mjs";
 
 export type { Locale };
 
@@ -111,13 +111,15 @@ export function thumbOf(item: WorkItem): string | undefined {
 /**
  * 从抓来的仓库列表装配「开源项目」节：
  * 过滤（非 fork/归档、与重点/手列去重、star≥阈值 或 创建于 since 之后），
- * 排序：star > 50 的高星作品排前、按 star 降序；其余排后、按最近修改（updated）降序。映射成 WorkItem。
+ * 排序：star > starLine 的高星作品排前、按 star 降序；其余排后、按最近修改（updated）降序。映射成 WorkItem。
+ * max（开源上限）只截断尾巴（star ≤ starLine），高星组永远全显——规则见 helpers.selectOpensourceRepos。
  * 纯函数（不读全局 gh/baseSite），便于单测。
  */
 export function buildOpensourceItems(
   repos: Record<string, GhRepo>,
   site: Pick<SiteData, "featured" | "groups" | "opensource" | "opensourceSince" | "starLine" | "opensourceNames" | "opensourceExclude">,
   user?: string,
+  max?: number,
 ): WorkItem[] {
   if (site.opensource === undefined) return [];
   const used = new Set<string>();
@@ -131,14 +133,14 @@ export function buildOpensourceItems(
   const nameMap = new Map(
     Object.entries(site.opensourceNames ?? {}).map(([k, v]) => [k.toLowerCase(), v]),
   );
-  // 选取逻辑（过滤/去重/排序）在 helpers.selectOpensourceRepos，与 fetch 抓图共用。此处不设 max：
-  // 返回完整列表，由渲染组件按 opensourceMax 截断并出「显示更多」。
+  // 选取逻辑（过滤/去重/排序/上限）在 helpers.selectOpensourceRepos，与 fetch 抓图共用，单一权威
   return (
     selectOpensourceRepos(repos, {
       usedRepos: used,
       threshold: site.opensource,
       since: site.opensourceSince,
-      starLine: site.starLine ?? 20,
+      starLine: site.starLine ?? DEFAULT_STAR_LINE,
+      max,
       exclude: new Set((site.opensourceExclude ?? []).map((s) => s.toLowerCase())),
     }) as [string, GhRepo][]
   ).map(([name, r]) => ({
@@ -150,5 +152,19 @@ export function buildOpensourceItems(
   }));
 }
 
-/** 站点的「开源项目」节数据（构建时装配，语言无关） */
-export const opensourceItems: WorkItem[] = buildOpensourceItems(gh.repos, baseSite, ghUser);
+/** 开源节的全部候选条目（不截断），只用来数总数 / 给测试校验截断规则 */
+export const opensourceAll: WorkItem[] = buildOpensourceItems(gh.repos, baseSite, ghUser);
+
+/**
+ * 站点「开源项目」节实际渲染的条目（构建时装配，语言无关）：
+ * 高星组（star > 星标线）永远全显，尾巴按「开源上限」截断。
+ */
+export const opensourceItems: WorkItem[] = buildOpensourceItems(
+  gh.repos,
+  baseSite,
+  ghUser,
+  baseSite.opensourceMax,
+);
+
+/** 开源节候选总数；大于 opensourceItems.length 时页面出「在 GitHub 看更多」按钮 */
+export const opensourceTotal: number = opensourceAll.length;

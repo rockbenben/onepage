@@ -10,6 +10,7 @@ public/shots/
 .gstack/
 
 .claude/
+.workbuddy-ai/
 
 # 内部 AI 规划/设计稿，本地保留、不进公开仓库
 docs/superpowers/

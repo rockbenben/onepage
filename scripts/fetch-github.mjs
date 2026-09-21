@@ -23,6 +23,7 @@ import {
   fixUrl,
   loadConfig,
   selectOpensourceRepos,
+  DEFAULT_STAR_LINE,
   TOP_ALIAS,
   WORK_ALIAS,
 } from "./helpers.mjs";
@@ -105,7 +106,10 @@ const get = async (url, headers = {}, init = {}, left = 2) => {
 // 开源节配置（供下方抓开源缩略图用，与 src/lib/schema.ts / data.ts 同义）
 const osThreshold = typeof top.opensource === "number" ? top.opensource : top.opensource === true ? 10 : undefined;
 const osSince = top.opensourceSince !== undefined ? String(top.opensourceSince) : undefined;
-const osStarLine = typeof top.starLine === "number" ? top.starLine : 20;
+const osStarLine = typeof top.starLine === "number" ? top.starLine : DEFAULT_STAR_LINE;
+// 开源上限：只截断星标线以下的尾巴，高星组永远全显（语义在 helpers.selectOpensourceRepos）。
+// 这里照样传 max，是为了只抓「真会渲染出来」的那批缩略图，不给被截掉的仓库白抓图；
+// 向上补足到 3 的倍数的那几张走同一条路径，所以抓图与渲染天然一致。
 const osMax = typeof top.opensourceMax === "number" ? top.opensourceMax : undefined;
 const osExclude = new Set((Array.isArray(top.opensourceExclude) ? top.opensourceExclude : []).filter((s) => typeof s === "string").map((s) => s.toLowerCase()));
 let ghMap = {}; // github.json 的 repos 映射，抓好后供开源缩略图循环复用

@@ -80,8 +80,8 @@ The whole file is flat — one level, no nested sections. The only required fiel
 | 外观 | appearance | | light or dark, `light` (default) / `dark` / `auto` (follows the visitor's system dark mode, pure CSS) |
 | 开源项目 | opensource | | optional, a number = auto-list GitHub repos with ≥ that many stars as an "Open Source" section; `true` = default 10; omit = hidden |
 | 开源项目起始 | opensource_since | | optional, a date (e.g. `2026-03`); repos created after this date are all listed (bypassing the star threshold) |
-| 星标线 | star_line | | optional, the Open Source sort split (default 20): repos above it pin to the top by stars; the rest sort by most-recent update |
-| 开源上限 | opensource_max | | optional, show at most this many in Open Source (e.g. `12`) with real thumbnails; the rest via a "See more" link to GitHub; omit = list all |
+| 星标线 | star_line | | optional, the Open Source sort split (default 30): repos above it pin to the top by stars; the rest sort by most-recent update. It doubles as the cut-off for "Open source max" — repos above it always show |
+| 开源上限 | opensource_max | | optional, caps **only the tail below the star line** (e.g. `15`; `0` = high-star repos only); the total rounds up to a multiple of 3 to fill the last row of the 3-column grid; high-star repos above it always show; omit = list all |
 | 开源排除 | opensource_exclude | | optional, a list of repo names (`- repo`) to keep out of the Open Source section (e.g. this template repo itself); case-insensitive |
 | 开源命名 | opensource_names | | optional, a `repo: display name` map (e.g. `md-translator: MD Translator`); changes only the display name in the Open Source section; thumbnails/links still use the original repo; omit = use the GitHub name |
 | 开源描述 | opensource_descriptions | | optional, a `repo: description` map that overrides the GitHub-fetched description in the Open Source section; **translatable** — put the English in `projects.en.yaml`'s field of the same name, so each language shows its own; omit = use the GitHub description |
@@ -109,9 +109,11 @@ The whole file is flat — one level, no nested sections. The only required fiel
 
 ### Open source (auto)
 
-Set `opensource: 10` and the build auto-lists your GitHub repos with ≥ 10 stars as an "Open Source" section (sorted by stars, forks/archived excluded, deduped against featured/manual works — no hand-copying). Each row carries a **source** link, plus a **demo/store** link when the repo has a homepage.
+Set `opensource: 10` and the build auto-lists your GitHub repos with ≥ 10 stars as an "Open Source" section (repos above the star line pin to the top by stars, the rest sort by most-recent update; forks/archived excluded, deduped against featured/manual works — no hand-copying). Each row carries a **source** link, plus a **demo/store** link when the repo has a homepage.
 
 Add `opensource_since: 2026-03` and every repo created after that date is listed too (regardless of stars) — for showing breadth when you ship a lot.
+
+> **How many get shown**: everything above the `星标线` (star line) always shows — those are your headline repos and shouldn't be cut off; `开源上限` only trims the long tail below the line (most-recently-updated first). So 8 above the line + a limit of 15 = 23, rounded up to **24** cards — the grid is 3 columns, and padding it keeps the last row full (if candidates run out, you get however many there are). Set it once and forget it: when the high-star group grows, it can never push your best repos out; whatever gets trimmed is covered by the "See more on GitHub" link at the end.
 
 > Auto-listed repo **names and descriptions come straight from GitHub and aren't translated per language** (the English page shows the GitHub text as-is). To rename or translate one, hand-write it into `作品`/`works` instead (it's deduped against the auto list).
 >

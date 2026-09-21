@@ -115,13 +115,27 @@ export const APPEARANCE_ALIAS = {
   暗: "暗", dark: "暗",
 };
 
+/** 星标线默认值（单一权威）：不写「星标线」时的兜底。data.ts / fetch-github.mjs / 编辑器文案与测试都引用它，避免「30」写死在多处各自腐烂 */
+export const DEFAULT_STAR_LINE = 30;
+
+/** 开源节在 lg 下是 3 列网格：总数向上对齐到 3 的倍数，让最后一行排满（改版式列数时要同步这里） */
+export const DEFAULT_ALIGN_STEP = 3;
+
 /**
  * 开源节的仓库选取（过滤/去重/排序/可选上限），供 src/lib/data.ts 渲染与 fetch-github.mjs 抓图共用，
  * 单一权威避免两处逻辑跑偏。repos = github.json 形状 {name: {stars, created, updated, fork, archived, …}}。
  * usedRepos = 已被重点/手列占用的仓库名集合（小写）。exclude = 手动排除的仓库名集合（小写）。
  * 排序：star>starLine 的按 star 降序在前，其余按最近 updated 降序。
+ *
+ * max（开源上限）只限制**尾巴**（star ≤ starLine 的那批）最多列几个；高星组永远全显。
+ * 写 0 = 尾巴一个都不列（只留高星组）；不写 = 不限。
+ * align = 网格列数（默认 3）：总数向上补到它的整数倍，多补的几张取自尾巴的下一批（候选不够就按实际数量）。
+ * 写 0/1 = 不对齐。max=0 是对齐的例外——那是明确的「不要尾巴」，不替用户加回来。
+ * 理由：高星组才是「代表作」，且它只会随时间变大——若把 max 当「总共显示几个」，
+ * 高星组一旦超过 max，被砍掉的恰好是 star 最高、最该露脸的那批（且需要人工回来调数字）。
+ * 现在 max 只削长尾，配置一次就不用再管。
  */
-export function selectOpensourceRepos(repos, { usedRepos, threshold, since, starLine = 20, max, exclude } = {}) {
+export function selectOpensourceRepos(repos, { usedRepos, threshold, since, starLine = DEFAULT_STAR_LINE, max, align = DEFAULT_ALIGN_STEP, exclude } = {}) {
   const excluded = exclude ?? new Set();
   const entries = Object.entries(repos).filter(
     ([name, r]) =>
@@ -138,7 +152,14 @@ export function selectOpensourceRepos(repos, { usedRepos, threshold, since, star
     if (aHi) return b[1].stars - a[1].stars || a[0].localeCompare(b[0]);
     return (b[1].updated ?? "").localeCompare(a[1].updated ?? "") || a[0].localeCompare(b[0]);
   });
-  return max ? entries.slice(0, max) : entries;
+  if (max === undefined) return entries;
+  // 排序保证高星组是前缀，所以尾巴起点 = 第一个非高星项；高星组全取，尾巴再取 max 个
+  const tailStart = entries.findIndex(([, r]) => r.stars <= starLine);
+  const highCount = tailStart === -1 ? entries.length : tailStart;
+  let take = highCount + Math.max(0, max);
+  // 向上对齐到网格列数的整数倍：多补几张凑满最后一行（候选不够时 slice 自然只给到实际数量）
+  if (max > 0 && align > 1) take = Math.ceil(take / align) * align;
+  return entries.slice(0, take);
 }
 
 /** github.com/<用户>/<仓库> 形状才算仓库；纯用户主页/其他站返回 null */

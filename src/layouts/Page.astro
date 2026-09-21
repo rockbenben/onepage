@@ -1,6 +1,6 @@
 ---
 import "../styles/global.css";
-import { gh, opensourceItems } from "../lib/data";
+import { gh, opensourceItems, opensourceTotal } from "../lib/data";
 import Hero from "../components/Hero.astro";
 import FeaturedSection from "../components/FeaturedSection.astro";
 import ListSection from "../components/ListSection.astro";
@@ -74,7 +74,7 @@ const jsonLd = JSON.stringify({
     {site.stats.length > 0 && <StatsSection stats={site.stats} />}
     {site.featured.length > 0 && <FeaturedSection items={site.featured} t={t} />}
     {site.groups.map((g: any) => <ListSection group={g} t={t} />)}
-    {opensourceItems.length > 0 && <OpenSourceSection items={opensourceItems} t={t} max={site.opensourceMax} descriptions={site.opensourceDescriptions} />}
+    {opensourceItems.length > 0 && <OpenSourceSection items={opensourceItems} hasMore={opensourceItems.length < opensourceTotal} t={t} descriptions={site.opensourceDescriptions} />}
     <footer class="mono mt-10 border-t border-(--color-line) py-10 text-xs text-(--color-ink-2)">
       <p>
         © {new Date().getFullYear()} {site.name}

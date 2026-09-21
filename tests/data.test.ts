@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { locales, baseSite, siteFor, thumbOf, assets, gh, repoOf, buildOpensourceItems } from "../src/lib/data";
+import { locales, baseSite, siteFor, thumbOf, assets, gh, repoOf, buildOpensourceItems, opensourceItems, opensourceAll, opensourceTotal } from "../src/lib/data";
 import type { WorkItem } from "../src/lib/schema";
 
 // 注意：src/lib/data.ts 在 import 时就会用 process.cwd() 读取 src/data/ 下的真实文件
@@ -194,5 +194,40 @@ describe("buildOpensourceItems：过滤/去重/排序/映射", () => {
     const names = buildOpensourceItems(repos as any, { ...site, opensourceExclude: ["HIGH-OLD"] } as any, "u").map((i) => i.key);
     expect(names).not.toContain("high-old"); // 被排除（大小写不敏感）
     expect(names).toContain("high-mid"); // 其余照常
+  });
+  it("开源上限只削尾巴：max=1 时高星组仍全显，只砍低星尾巴的末位", () => {
+    const names = buildOpensourceItems(repos as any, site, "u", 1).map((i) => i.name);
+    expect(names).toContain("high-old"); // 高星组不受 max 影响
+    expect(names).toContain("high-mid");
+    expect(names).toContain("low-new"); // 尾巴按最近更新取前 1（low-new 2026-07 排在 low-mid 前）
+    expect(names).not.toContain("low-mid");
+  });
+  it("不传 max → 全部列出（与加 max 之前的行为一致）", () => {
+    const names = buildOpensourceItems(repos as any, site, "u").map((i) => i.name);
+    expect(names).toContain("low-mid");
+  });
+});
+
+describe("opensourceItems / opensourceTotal（真实 demo 配置）", () => {
+  it("展示列表是完整候选列表的前缀（截断只从尾巴切，不会重排）", () => {
+    const shown = opensourceItems.map((i) => i.key);
+    expect(opensourceAll.slice(0, shown.length).map((i) => i.key)).toEqual(shown);
+  });
+
+  it("候选里所有高星项（star > 星标线）都进了展示列表", () => {
+    const starLine = baseSite.starLine ?? 30;
+    const highKeys = opensourceAll
+      .filter((i) => (repoOf(i)?.stars ?? 0) > starLine)
+      .map((i) => i.key);
+    const shown = new Set(opensourceItems.map((i) => i.key));
+    for (const k of highKeys) expect(shown.has(k)).toBe(true);
+  });
+
+  it("opensourceTotal 等于完整候选数", () => {
+    expect(opensourceTotal).toBe(opensourceAll.length);
+  });
+
+  it("展示条数是 3 的倍数（3 列网格，末行不留残缺）", () => {
+    expect(opensourceItems.length % 3).toBe(0);
   });
 });

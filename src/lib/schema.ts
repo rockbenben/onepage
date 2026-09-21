@@ -41,8 +41,8 @@ export interface SiteData {
   appearance: Appearance;
   opensource?: number; // star 阈值；写了才显示「开源项目」节
   opensourceSince?: string; // 此日期后创建的仓库绕过阈值全列（365 计划期）
-  starLine?: number; // 排序分界：star 超过此数的置顶按 star 排、其余按最近更新排（默认 20）
-  opensourceMax?: number; // 开源节最多展示几个，其余靠「显示更多」跳 GitHub；不写=不限
+  starLine?: number; // 排序分界：star 超过此数的置顶按 star 排、其余按最近更新排（默认 30）；同时是「开源上限」的分界，线上的高星组永远全显
+  opensourceMax?: number; // 尾巴（star ≤ 星标线）最多再列几个；总数会向上补到 3 的倍数凑满网格行；0=只列高星组（不补）；高星组永远全显；不写=不限
   opensourceNames?: Record<string, string>; // 开源节仓库名→显示名映射（仅改展示名，缩略图/链接仍按原 repo）
   opensourceDescriptions?: Record<string, string>; // 开源节仓库名→描述映射（按语言覆盖 GitHub 原描述；en 翻译写在 projects.en.yaml）
   opensourceExclude?: string[]; // 手动排除的仓库名（不进开源节，如本模板仓自身）

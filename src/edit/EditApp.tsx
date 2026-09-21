@@ -434,8 +434,8 @@ function MoreFields({ config, update, t }: FieldProps) {
           />
           <Text label={t.fOpensource} value={config.opensource} placeholder="10" onInput={(v) => update((c) => (c.opensource = v))} />
           <Text label={t.fOpensourceSince} value={config.opensourceSince} placeholder="2026-03" onInput={(v) => update((c) => (c.opensourceSince = v))} />
-          <Text label={t.fStarLine} value={config.starLine} placeholder="20" onInput={(v) => update((c) => (c.starLine = v))} />
-          <Text label={t.fOpensourceMax} value={config.opensourceMax} placeholder="12" onInput={(v) => update((c) => (c.opensourceMax = v))} />
+          <Text label={t.fStarLine} value={config.starLine} placeholder="30" onInput={(v) => update((c) => (c.starLine = v))} />
+          <Text label={t.fOpensourceMax} value={config.opensourceMax} placeholder="15" onInput={(v) => update((c) => (c.opensourceMax = v))} />
           <Area label={t.fFooter} value={config.footer} onInput={(v) => update((c) => (c.footer = v))} />
           <Text label={t.fMark} value={config.mark} placeholder="365 · Open Source" onInput={(v) => update((c) => (c.mark = v))} />
           <Text label={t.fLang} value={config.lang} placeholder={t.fLangPlaceholder} onInput={(v) => update((c) => (c.lang = v))} />
