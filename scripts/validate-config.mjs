@@ -3,17 +3,37 @@
 // 用人话指出大概第几行，并说明「网站没被破坏，还是上一次的样子」。
 import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
-import { loadConfig } from "./helpers.mjs";
+import { loadConfig, DEFAULT_STAR_LINE } from "./helpers.mjs";
 
 const DIR = resolve(process.cwd(), "src/data");
+
+// 终端里的显示宽度：CJK / 全角按 2 列算，其余 1 列。
+// 用 [...l].length 会把中文当成 1 列，于是边框比文字窄一大截 —— 中文提示全都会撑出框。
+function displayWidth(s) {
+  let w = 0;
+  for (const ch of s) {
+    const cp = ch.codePointAt(0);
+    const wide =
+      (cp >= 0x1100 && cp <= 0x115f) || // 谚文字母
+      (cp >= 0x2e80 && cp <= 0xa4cf) || // CJK 部首 … 彝文
+      (cp >= 0xac00 && cp <= 0xd7a3) || // 谚文音节
+      (cp >= 0xf900 && cp <= 0xfaff) || // CJK 兼容表意
+      (cp >= 0xfe30 && cp <= 0xfe6f) || // CJK 兼容形式
+      (cp >= 0xff00 && cp <= 0xff60) || // 全角字符
+      (cp >= 0xffe0 && cp <= 0xffe6); // 全角符号
+    w += wide ? 2 : 1;
+  }
+  return w;
+}
 
 function frame(lines) {
   // 处理空数组情况，防止 Math.max(...[]) 返回 -Infinity
   if (lines.length === 0) return;
-  const width = Math.max(...lines.map((l) => [...l].length)) + 2;
-  const bar = "─".repeat(width);
+  const width = Math.max(...lines.map(displayWidth));
+  const bar = "─".repeat(width + 2);
   console.error(`\n┌${bar}┐`);
-  for (const l of lines) console.error(`│ ${l} │`);
+  // 每行补空格到同一显示宽度，右边框才会对齐
+  for (const l of lines) console.error(`│ ${l}${" ".repeat(width - displayWidth(l))} │`);
   console.error(`└${bar}┘\n`);
 }
 
@@ -88,6 +108,39 @@ for (const f of [...new Set(files)]) {
         `网址 要写完整网址，以 https:// 开头，`,
         `例如 https://你的用户名.github.io`,
       ]);
+    }
+
+    // 开源节的数值字段：写错时 schema 会静默丢弃（回落兜底值）或产出荒谬结果，
+    // 症状是「改了配置却看不出变化」——和上面的 网址 同类，先用人话拦下。
+    const isNum = (v) => typeof v === "number" && Number.isFinite(v);
+    const problems = [];
+
+    // 开源项目 还接受 true/false（true = 默认 10）；写成别的会被当成「不显示」
+    const osVal = doc?.开源项目 ?? doc?.opensource;
+    if (osVal !== undefined && osVal !== true && osVal !== false && !(isNum(osVal) && osVal >= 0)) {
+      problems.push([
+        `开源项目 要写数字（如 10）或 true / false，现在是 ${JSON.stringify(osVal)}。`,
+        `写成别的值会被当成「不显示开源节」——页面上会安静地少一整节。`,
+      ]);
+    }
+
+    for (const [zh, en, eg, hint] of [
+      ["星标线", "star_line", DEFAULT_STAR_LINE, `写错会被忽略，悄悄用默认值 ${DEFAULT_STAR_LINE}`],
+      ["开源上限", "opensource_max", 15, "写错会被忽略（＝不限）或变成 0（只列高星组）"],
+    ]) {
+      const v = doc?.[zh] ?? doc?.[en];
+      if (v === undefined) continue;
+      if (!isNum(v) || v < 0) {
+        problems.push([
+          `${zh} 要写不小于 0 的数字（如 ${eg}），现在是 ${JSON.stringify(v)}。`,
+          `${hint}，页面上看不出你改过这个值。`,
+        ]);
+      }
+    }
+
+    for (const lines of problems) {
+      bad++;
+      frame(lines);
     }
   }
 }

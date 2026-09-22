@@ -64,4 +64,26 @@ describe("scripts/validate-config.mjs 冒烟测试（真跑子进程）", () => 
     expect(res.status).toBe(1);
     expect(res.stderr).toMatch(/格式问题/);
   });
+
+  it("数值字段写错：exit 1 且指名道姓（中英别名都认）", () => {
+    const cases = [
+      ["名字: 张三\n星标线: abc\n", /星标线/],
+      ["名字: 张三\n开源上限: -1\n", /开源上限/],
+      ["名字: 张三\n开源项目: abc\n", /开源项目/],
+      ["名字: 张三\nstar_line: 三十\n", /星标线/],
+      ["名字: 张三\nopensource_max: -1\n", /开源上限/],
+    ];
+    for (const [yaml, re] of cases) {
+      const res = runValidate(makeFixture(yaml));
+      expect(res.status, yaml).toBe(1);
+      expect(res.stderr, yaml).toMatch(re);
+    }
+  });
+
+  it("数值字段的合法写法不误报：exit 0", () => {
+    // 开源上限 0 是文档化的合法值（只列高星组）；开源项目 接受 true/false
+    const dir = makeFixture("名字: 张三\n开源项目: true\n星标线: 30\n开源上限: 0\n");
+    const res = runValidate(dir);
+    expect(res.status, res.stderr).toBe(0);
+  });
 });
