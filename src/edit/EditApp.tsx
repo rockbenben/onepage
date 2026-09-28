@@ -151,21 +151,23 @@ export default function EditApp(props: { initialYaml: string; enHasAuthorResidue
           <div class="flex flex-wrap items-center gap-3">
             <div class="eyebrow flex items-center gap-2">
               <button
-                class={lang === "zh-CN" ? "font-semibold text-(--color-ink)" : "hover:text-(--color-ink)"}
+                class={lang === "zh-CN" ? "py-1 font-semibold text-(--color-ink)" : "py-1 hover:text-(--color-ink)"}
+                aria-current={lang === "zh-CN" ? "true" : undefined}
                 onClick={() => setLang("zh-CN")}
               >
                 {t.langZh}
               </button>
               <span class="opacity-40">/</span>
               <button
-                class={lang === "en" ? "font-semibold text-(--color-ink)" : "hover:text-(--color-ink)"}
+                class={lang === "en" ? "py-1 font-semibold text-(--color-ink)" : "py-1 hover:text-(--color-ink)"}
+                aria-current={lang === "en" ? "true" : undefined}
                 onClick={() => setLang("en")}
               >
                 {t.langEn}
               </button>
             </div>
             <div class="flex gap-2">
-              <button class="btn btn-primary text-sm" onClick={copy}>{copied ? t.copied : t.copyYaml}</button>
+              <button class="btn btn-primary text-sm" aria-live="polite" onClick={copy}>{copied ? t.copied : t.copyYaml}</button>
               <button class="btn text-sm" onClick={download}>{t.download}</button>
             </div>
           </div>
@@ -190,12 +192,12 @@ export default function EditApp(props: { initialYaml: string; enHasAuthorResidue
 
             <div class="flex flex-wrap gap-2">
               <button class="btn text-xs" onClick={loadCurrentSite}>{t.loadCurrent}</button>
-              <label class="btn cursor-pointer text-xs">
+              <label class="btn cursor-pointer text-xs focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-(--color-accent)">
                 {t.uploadFile}
                 <input
                   type="file"
                   accept=".yaml,.yml"
-                  class="hidden"
+                  class="sr-only"
                   onChange={(e) => {
                     const f = (e.target as HTMLInputElement).files?.[0];
                     if (f) f.text().then(load);
@@ -224,13 +226,14 @@ export default function EditApp(props: { initialYaml: string; enHasAuthorResidue
                 <span class="mono text-xs text-(--color-accent)">{yamlLines}</span>
               </div>
               {validationError && (
-                <p class="border-l-2 border-amber-500 bg-amber-50 py-2 pr-3 pl-3 text-sm text-amber-800">
+                <p class="callout-error text-sm">
                   {t.validationPrefix}
                   {validationError}
                 </p>
               )}
               <textarea
-                class="min-h-[58vh] w-full rounded-md border border-(--color-line) bg-(--color-card) p-4 font-mono text-xs leading-relaxed text-(--color-ink)"
+                aria-label={t.yamlAria}
+                class="yaml-pane w-full rounded-md border border-(--color-line) bg-(--color-card) p-4 font-mono text-xs leading-relaxed text-(--color-ink)"
                 value={draft ?? yamlOut}
                 onInput={(e) => setDraft((e.target as HTMLTextAreaElement).value)}
               />

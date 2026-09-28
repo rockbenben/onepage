@@ -18,6 +18,7 @@ export interface EditorUI {
   loadCurrent: string;
   uploadFile: string;
   pasteHint: string;
+  yamlAria: string;
   importThis: string;
   discardDraft: string;
   importFailed: string;
@@ -105,6 +106,7 @@ const zh: EditorUI = {
   loadCurrent: "载入当前站配置",
   uploadFile: "上传文件",
   pasteHint: "已有 projects.yaml？直接粘贴到右侧 YAML 面板，再点「导入这段 YAML」，表单就会读进你的内容。",
+  yamlAria: "YAML 校样，可直接改文字再点「导入这段 YAML」",
   importThis: "导入这段 YAML",
   discardDraft: "放弃，回到表单结果",
   importFailed: "这个 YAML 读不进来：",
@@ -183,6 +185,7 @@ const en: EditorUI = {
   loadCurrent: "Load current config",
   uploadFile: "Upload file",
   pasteHint: 'Already have a projects.yaml? Paste it into the YAML panel on the right, then click "Import this YAML" and the form reads it in.',
+  yamlAria: 'YAML proof. Edit the text here, then click "Import this YAML".',
   importThis: "Import this YAML",
   discardDraft: "Discard, back to form",
   importFailed: "Couldn't read this YAML: ",

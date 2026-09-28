@@ -86,7 +86,7 @@ export function Area(props: {
     <label class="block">
       <span class={FIELD_LABEL}>{props.label}</span>
       <textarea
-        class={`${FIELD} min-h-[4.5rem] leading-relaxed`}
+        class={`${FIELD} min-h-18 leading-relaxed`}
         value={props.value ?? ""}
         placeholder={props.placeholder ?? ""}
         onInput={(e) => props.onInput((e.target as HTMLTextAreaElement).value)}
