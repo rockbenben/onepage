@@ -38,7 +38,7 @@ const LANG_COLOR: Record<string, string> = {
         <article class="card flex flex-col overflow-hidden">
           {img && main && (
             <a href={main} target="_blank" rel="noopener noreferrer"
-              class="thumb block aspect-[1200/630] overflow-hidden border-b border-(--color-line)">
+              class="thumb block aspect-social overflow-hidden border-b border-(--color-line)">
               <img src={img} alt={fmt(t.thumbAlt, { name: it.name })} loading="lazy" class="h-full w-full object-cover" />
             </a>
           )}
@@ -63,7 +63,7 @@ const LANG_COLOR: Record<string, string> = {
               )}
               {it.source && (
                 <a href={it.source} target="_blank" rel="noopener noreferrer"
-                  class="mono text-xs text-(--color-ink-2) hover:text-(--color-accent) hover:underline">{t.source} ↗</a>
+                  class="mono py-1 text-xs text-(--color-ink-2) hover:text-(--color-accent) hover:underline">{t.source} ↗</a>
               )}
             </div>
           </div>
@@ -76,7 +76,7 @@ const LANG_COLOR: Record<string, string> = {
       <a href={moreHref} target="_blank" rel="noopener noreferrer" class="btn mono mt-8 inline-block text-sm">{t.opensourceMore} →</a>
     ) : (
       <a href={moreHref} target="_blank" rel="noopener noreferrer"
-        class="mono mt-6 inline-block text-sm text-(--color-ink-2) hover:text-(--color-accent) hover:underline">github.com/{ghUser} ↗</a>
+        class="mono mt-6 inline-block py-1 text-sm text-(--color-ink-2) hover:text-(--color-accent) hover:underline">github.com/{ghUser} ↗</a>
     )
   )}
 </section>

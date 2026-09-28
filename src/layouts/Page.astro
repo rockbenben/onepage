@@ -70,11 +70,13 @@ const jsonLd = JSON.stringify({
       .map((l: any) => <meta property="og:locale:alternate" content={ogLocale(l.code)} />)}
   </head>
   <body class="mx-auto max-w-5xl px-5">
-    <Hero site={site} locales={locales} current={current} />
-    {site.stats.length > 0 && <StatsSection stats={site.stats} />}
-    {site.featured.length > 0 && <FeaturedSection items={site.featured} t={t} />}
-    {site.groups.map((g: any) => <ListSection group={g} t={t} />)}
-    {opensourceItems.length > 0 && <OpenSourceSection items={opensourceItems} hasMore={opensourceItems.length < opensourceTotal} t={t} descriptions={site.opensourceDescriptions} />}
+    <main>
+      <Hero site={site} locales={locales} current={current} />
+      {site.stats.length > 0 && <StatsSection stats={site.stats} />}
+      {site.featured.length > 0 && <FeaturedSection items={site.featured} t={t} />}
+      {site.groups.map((g: any) => <ListSection group={g} t={t} />)}
+      {opensourceItems.length > 0 && <OpenSourceSection items={opensourceItems} hasMore={opensourceItems.length < opensourceTotal} t={t} descriptions={site.opensourceDescriptions} />}
+    </main>
     <footer class="mono mt-10 border-t border-(--color-line) py-10 text-xs text-(--color-ink-2)">
       <p>
         © {new Date().getFullYear()} {site.name}

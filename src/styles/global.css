@@ -59,6 +59,13 @@
   --font-sans: "Inter", "Noto Sans SC", system-ui, -apple-system, "PingFang SC",
     "Microsoft YaHei", sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  /* 中文标题必须按「会换行」设计：Tailwind 默认 5xl 行高是 1，两行汉字会贴在一起 */
+  --text-4xl--line-height: 1.1;
+  --text-5xl--line-height: 1.1;
+  /* GitHub Social preview / 自动卡片都是这个尺寸，三处共用一个比例 */
+  --aspect-social: 1200 / 630;
+  /* 全站唯一阴影：卡片 hover 浮起，墨色按主题自动反相 */
+  --shadow-card: 0 2px 12px color-mix(in srgb, var(--color-ink) 6%, transparent);
 }
 
 /* ===== 主题调色板：5 套，各含明/暗。暗版 hex 单点定义为 --*-d，
@@ -198,7 +205,7 @@ a {
 }
 .card:hover {
   border-color: color-mix(in srgb, var(--color-ink) 35%, var(--color-line));
-  box-shadow: 0 2px 12px rgba(29, 35, 46, 0.06);
+  box-shadow: var(--shadow-card);
 }
 
 .thumb {
@@ -281,10 +288,35 @@ a {
   text-decoration-color: var(--color-accent);
 }
 
+/* 页脚链接是用户在 YAML 里手写的 HTML，不能要求他们记得加类名：这里兜底给可点线索。
+   Tailwind preflight 把 a 的下划线继承掉了，不补就等于一串看不出能点的字。 */
+footer a {
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--color-ink) 25%, transparent);
+}
+footer a:hover {
+  color: var(--color-accent);
+  text-decoration-color: var(--color-accent);
+}
+
 .stat-num {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   font-weight: 600;
+}
+
+/* ===== 编辑器：红笔批注式提示（校验错误 / 校样面板） ===== */
+.callout-error {
+  border-left: 2px solid var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 6%, var(--color-card));
+  color: var(--color-ink);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.25rem;
+}
+
+/* 校样面板高度按视口给，Tailwind 没有对应的刻度 */
+.yaml-pane {
+  min-height: 58vh;
 }
 
 /* ===== 动效偏好 ===== */

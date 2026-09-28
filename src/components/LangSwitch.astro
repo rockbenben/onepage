@@ -13,7 +13,7 @@ const { locales, current } = Astro.props;
         {l.code === current ? (
           <span class="font-semibold text-(--color-ink)" aria-current="true">{nativeName(l.code)}</span>
         ) : (
-          <a href={l.href} hreflang={l.code} class="hover:text-(--color-ink) hover:underline">{nativeName(l.code)}</a>
+          <a href={l.href} hreflang={l.code} class="-mx-1.5 px-1.5 py-1 hover:text-(--color-ink) hover:underline">{nativeName(l.code)}</a>
         )}
       </Fragment>
     ))}

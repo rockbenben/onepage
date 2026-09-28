@@ -22,7 +22,7 @@ const statText = (s: any) =>
   <div class="grid grid-cols-2 gap-x-6 gap-y-4 border-y border-(--color-line) py-5 sm:flex sm:flex-wrap sm:gap-0 sm:py-0 sm:divide-x sm:divide-(--color-line)">
     {stats.map((s: any) => {
       return (
-        <div class="sm:min-w-[130px] sm:flex-1 sm:py-5 sm:pl-5 sm:first:pl-0">
+        <div class="sm:min-w-32 sm:flex-1 sm:py-5 sm:pl-5 sm:first:pl-0">
           <div class="stat-num text-2xl sm:text-3xl">{statText(s)}</div>
           <div class="mt-1 text-xs text-(--color-ink-2) sm:text-sm">{s.label}</div>
         </div>

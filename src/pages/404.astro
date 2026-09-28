@@ -24,9 +24,11 @@ const t = getUI(site.lang);
     <title>404 · {site.name}</title>
   </head>
   <body class="mx-auto flex min-h-screen max-w-5xl flex-col items-start justify-center px-5">
-    <p class="eyebrow">404</p>
-    <h1 class="mt-3 text-4xl font-extrabold tracking-tight">{t.notFoundTitle}</h1>
-    <p class="mt-4 text-(--color-ink-2)">{t.notFoundBody}</p>
-    <a href="/" class="btn btn-primary mt-8">{t.notFoundBack}</a>
+    <main class="flex flex-col items-start">
+      <p class="eyebrow">404</p>
+      <h1 class="mt-3 text-4xl font-extrabold">{t.notFoundTitle}</h1>
+      <p class="mt-4 text-(--color-ink-2)">{t.notFoundBody}</p>
+      <a href="/" class="btn btn-primary mt-8">{t.notFoundBack}</a>
+    </main>
   </body>
 </html>
