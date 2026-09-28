@@ -8,9 +8,12 @@ public/shots/
 
 .superpowers/
 .gstack/
+# Design Review 跑出来的截图与报告，本地工件不入库
+.design-qa/
 
 .claude/
 .workbuddy-ai/
+.qoder*
 
 # 内部 AI 规划/设计稿，本地保留、不进公开仓库
 docs/superpowers/
