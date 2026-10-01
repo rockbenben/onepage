@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { parseOgImage, extFromContentType, ghUserFrom, slugify } from "../scripts/helpers.mjs";
 import { repoFromUrl, fixUrl, loadConfig, TOP_ALIAS, WORK_ALIAS, LANG_NAME_ALIAS } from "../scripts/helpers.mjs";
 import { selectOpensourceRepos } from "../scripts/helpers.mjs";
+import { fetchShotsWithRetry, SHOT_COOLDOWN_MS } from "../scripts/helpers.mjs";
 import { slugify as schemaSlugify } from "../src/lib/schema";
 
 describe("repoFromUrl", () => {
@@ -199,5 +200,69 @@ describe("selectOpensourceRepos：总数向上对齐到 3 的倍数（凑满网�
 
   it("不传 max（不限）不对齐，原样全列", () => {
     expect(names({})).toEqual(["h1", "h2", "t1", "t2", "t3", "t4", "t5"]);
+  });
+});
+
+describe("fetchShotsWithRetry：挨限流的图攒起来，冷却后整批补抓一次", () => {
+  const items = [{ slug: "a" }, { slug: "b" }, { slug: "c" }];
+  const noSleep = () => Promise.resolve();
+  const ok = async ({ slug }) => `/shots/${slug}.webp`;
+
+  it("全部首轮成功 → 一次都不冷却", async () => {
+    let slept = 0;
+    const r = await fetchShotsWithRetry(items, { grab: ok, sleep: () => { slept++; return noSleep(); } });
+    expect(r).toEqual({
+      shots: { a: "/shots/a.webp", b: "/shots/b.webp", c: "/shots/c.webp" },
+      lost: [],
+    });
+    expect(slept).toBe(0);
+  });
+
+  it("一项 429 不拖累同批：只补抓失败那张、整批只冷却一次", async () => {
+    const tries = {};
+    const slept = [];
+    const { shots, lost } = await fetchShotsWithRetry(items, {
+      grab: async ({ slug }) => {
+        tries[slug] = (tries[slug] ?? 0) + 1;
+        if (slug === "b" && tries[slug] === 1) throw new Error("HTTP 429");
+        return `/shots/${slug}.webp`;
+      },
+      sleep: (ms) => { slept.push(ms); return noSleep(); },
+    });
+    expect(lost).toEqual([]);
+    expect(shots).toEqual({ a: "/shots/a.webp", b: "/shots/b.webp", c: "/shots/c.webp" });
+    expect(slept).toEqual([SHOT_COOLDOWN_MS]);
+    expect(tries).toEqual({ a: 1, b: 2, c: 1 });
+  });
+
+  it("两轮都失败才记为缺失，带最后一次的错误", async () => {
+    let n = 0;
+    const { shots, lost } = await fetchShotsWithRetry([{ slug: "b" }], {
+      grab: async () => { n++; throw new Error(`HTTP 429 第${n}次`); },
+      sleep: noSleep,
+    });
+    expect(shots).toEqual({});
+    expect(lost).toEqual([{ slug: "b", message: "HTTP 429 第2次" }]);
+    expect(n).toBe(2);
+  });
+
+  it("grab 返回 null 是「这条不需要图」（本地图），既不算缺失也不触发冷却", async () => {
+    let slept = 0;
+    const { shots, lost } = await fetchShotsWithRetry([{ slug: "local" }], {
+      grab: async () => null,
+      sleep: () => { slept++; return noSleep(); },
+    });
+    expect({ shots, lost }).toEqual({ shots: {}, lost: [] });
+    expect(slept).toBe(0);
+  });
+
+  it("onRetry 拿到失败数与冷却时长，供日志打进度", async () => {
+    const seen = [];
+    await fetchShotsWithRetry(items, {
+      grab: async ({ slug }) => { if (slug === "a") return "/shots/a.webp"; throw new Error("x"); },
+      sleep: noSleep,
+      onRetry: (n, ms) => seen.push([n, ms]),
+    });
+    expect(seen).toEqual([[2, SHOT_COOLDOWN_MS]]);
   });
 });

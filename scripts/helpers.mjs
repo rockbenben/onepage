@@ -121,6 +121,9 @@ export const DEFAULT_STAR_LINE = 30;
 /** 开源节在 lg 下是 3 列网格：总数向上对齐到 3 的倍数，让最后一行排满（改版式列数时要同步这里） */
 export const DEFAULT_ALIGN_STEP = 3;
 
+/** 补抓前等的限流窗口（fetchShotsWithRetry 用）：按分钟级窗口给，太短等于没等 */
+export const SHOT_COOLDOWN_MS = 60000;
+
 /**
  * 开源节的仓库选取（过滤/去重/排序/可选上限），供 src/lib/data.ts 渲染与 fetch-github.mjs 抓图共用，
  * 单一权威避免两处逻辑跑偏。repos = github.json 形状 {name: {stars, created, updated, fork, archived, …}}。
@@ -160,6 +163,49 @@ export function selectOpensourceRepos(repos, { usedRepos, threshold, since, star
   // 向上对齐到网格列数的整数倍：多补几张凑满最后一行（候选不够时 slice 自然只给到实际数量）
   if (max > 0 && align > 1) take = Math.ceil(take / align) * align;
   return entries.slice(0, take);
+}
+
+/**
+ * 缩略图抓取的重试编排（依赖注入，可无网络测试）。
+ *
+ * 为什么单独一轮补抓，而不是在单项里原地长等：GitHub 的自动社交卡
+ * （opengraph.githubassets.com）是动态渲染器、按 IP 突发限流，一批图里总有一两张会落在
+ * 限流窗口里。原地等满 Retry-After 会让一项吃掉几分钟，而同批后面的项本来一次就能过——
+ * 限流是按窗口的，所以整批只该在跑完后再等一个窗口一起补抓，而不是每张各自赌运气。
+ *
+ * grab 返回资源路径（如 /shots/x.webp）；返回 null 表示「这条不需要图」（本地引用等），
+ * 与「抓失败」是三种不同结果，不能混成一种。抛错才算失败，进补抓队列。
+ * lost 是补抓后仍然失败的项：调用方要把它报出去（缺失必须可见、且一句「重跑即可补」可自救），
+ * 不要在这里悄悄兜底换一张旧图把问题盖掉。
+ * onRetry(失败数, 冷却毫秒) 只用来打进度行（不传就闷头等 60s，日志上像卡住了）。
+ */
+export async function fetchShotsWithRetry(
+  items,
+  { grab, cooloffMs = SHOT_COOLDOWN_MS, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), onRetry } = {},
+) {
+  const shots = {};
+  const first = [];
+  for (const it of items) {
+    try {
+      const r = await grab(it);
+      if (r) shots[it.slug] = r;
+    } catch (e) {
+      first.push({ it, message: e?.message ?? String(e) });
+    }
+  }
+  if (!first.length) return { shots, lost: [] };
+  onRetry?.(first.length, cooloffMs);
+  await sleep(cooloffMs);
+  const lost = [];
+  for (const { it, message } of first) {
+    try {
+      const r = await grab(it);
+      if (r) shots[it.slug] = r;
+    } catch (e) {
+      lost.push({ slug: it.slug, message: e?.message ?? message });
+    }
+  }
+  return { shots, lost };
 }
 
 /** github.com/<用户>/<仓库> 形状才算仓库；纯用户主页/其他站返回 null */

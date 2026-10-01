@@ -4,6 +4,8 @@
  *   2) 头像（头像 远程 URL 或 GitHub 头像）→ public/avatar-auto.*
  *   3) 全部作品缩略图（图 字段 > 仓库自定义 Social preview > 链接 的 og:image > GitHub 社交卡片）→ public/shots/
  * 资源映射写入 src/data/assets.json。已存在的文件增量跳过，--force 重抓。
+ * 缩略图首轮没抓到的（多为 GitHub 自动社交卡限流），整批跑完后冷却一个窗口补抓一次；
+ * 补抓仍缺的会在日志末尾汇总成一条「重跑本工作流即可补」的告警，不静默留白。
  * 任何单项失败只 warn，不中断构建。
  *
  * 用法：node scripts/fetch-github.mjs [--force]
@@ -23,6 +25,7 @@ import {
   fixUrl,
   loadConfig,
   selectOpensourceRepos,
+  fetchShotsWithRetry,
   DEFAULT_STAR_LINE,
   TOP_ALIAS,
   WORK_ALIAS,
@@ -82,8 +85,9 @@ function ownRepo(item) {
   return r && ghUser && r.owner.toLowerCase() === ghUser.toLowerCase() ? r.repo : null;
 }
 
-// 429 退避重试：Actions 里连抓十几张时 opengraph.githubassets.com 会突发限流。
-// 请求间均匀加间隙没用（本就隔 ~0.6s，限的是窗口配额），只在挨限流时等，认 Retry-After。
+// 429 退避重试：只在挨限流时等，认 Retry-After；加抖动防多任务撞同一窗口。
+// 抓缩略图时这里传 left=0（不等）：限流按窗口算，单项原地等满整个窗口不如整批跑完
+// 后一起冷却补抓一次，见 fetchShotsWithRetry。
 const get = async (url, headers = {}, init = {}, left = 2) => {
   const res = await fetch(url, {
     redirect: "follow",
@@ -223,10 +227,10 @@ const ogMap = await fetchCustomPreviews(ghUser, [
 // 把 1200×630 原图（实测常 60–150K）压到 ~12–25K，砍掉 ~70–85% 首屏图片重量。
 const THUMB_MAX_W = 800;
 const THUMB_QUALITY = 80;
-async function download(url, dir, name) {
+async function download(url, dir, name, left = 2) {
   const out = name + ".webp";
   if (!FORCE && existsSync(resolve(dir, out))) return out; // 已缓存（优化后固定 .webp）
-  const res = await get(url);
+  const res = await get(url, {}, {}, left);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   // 不按 content-type 拦：GitHub 自定义 Social preview 走 S3 预签名 URL，回的是
   // binary/octet-stream，拦下来的恰好全是设了 preview 的仓库。由 sharp 判断是不是图片。
@@ -262,19 +266,22 @@ async function ogImageUrl(pageUrl) {
 // 缩略图来源优先级：手动远程图 > 仓库自定义 Social preview（作者在 GitHub Settings
 // 上传的图，仓库页 og 落在 repository-images.githubusercontent.com）> 站点 og
 // （作品的 demo 站；开源节传 null 跳过——长尾仓库的 homepage 常是通用图/商店图）
-// > GitHub 自动卡片（opengraph.githubassets.com，永远仓库专属）。返回最终图片 URL。
+// > GitHub 自动卡片（opengraph.githubassets.com，永远仓库专属）。
+// 返回 {url, via}：via 跟着日志一起打出去。少了它，「某张卡没图」只会看到一句 HTTP 429，
+// 分不清是自动卡的上限还是 preview 图床的问题——两者域名不同、处置也不同。
 async function resolveThumbUrl({ imageRemote = null, repo = null, site = null }, ghUser) {
-  if (imageRemote) return imageRemote;
+  if (imageRemote) return { url: imageRemote, via: "手动图" };
   let autoCard = null;
   if (repo && ghUser) {
     autoCard = `https://opengraph.githubassets.com/1/${ghUser}/${repo}`;
     if (ogMap) {
-      if (ogMap[repo]) return ogMap[repo]; // GraphQL 已确认有自定义 Social preview
+      if (ogMap[repo]) return { url: ogMap[repo], via: "Social preview" }; // GraphQL 已确认有自定义 Social preview
       // 没有就直接落到站点 og / 自动卡片，不必再抓页面
     } else {
       try {
         const og = await ogImageUrl(`https://github.com/${ghUser}/${repo}`);
-        if (og.includes("repository-images.githubusercontent.com")) return og; // 自定义 Social preview
+        if (og.includes("repository-images.githubusercontent.com"))
+          return { url: og, via: "Social preview" }; // 自定义 Social preview
       } catch {
         /* 仓库页抓取失败，落到站点 og / 自动卡片 */
       }
@@ -282,12 +289,12 @@ async function resolveThumbUrl({ imageRemote = null, repo = null, site = null },
   }
   if (site) {
     try {
-      return await ogImageUrl(fixUrl(site));
+      return { url: await ogImageUrl(fixUrl(site)), via: "站点 og" };
     } catch {
       /* 站点 og 失败，落到自动卡片 */
     }
   }
-  if (autoCard) return autoCard;
+  if (autoCard) return { url: autoCard, via: "GitHub 自动卡" };
   throw new Error("无可用缩略图来源");
 }
 
@@ -307,54 +314,55 @@ try {
   console.warn(`⚠ 头像下载失败：${e.message}`);
 }
 
-/* ---------- 3) 全部作品缩略图（不只重点） ---------- */
+/* ---------- 3) 全部缩略图（作品 + 开源节共用一条队列；首轮没抓到的冷却后一起补抓） ---------- */
 const shotsDir = resolve(ROOT, "public/shots");
 await mkdir(shotsDir, { recursive: true });
 
+// 一条待办 = 一张图。slug 就是 assets.json 的键，必须与 src/lib/schema.ts 的 WorkItem.key
+// 公式一致：作品 slugify(名字)||原名、开源节仓库名，不掺 repo——否则清单页按 item.key
+// 查表会查不到，缩略图静默消失。
+const todo = new Map();
 for (const item of works) {
   if (!item.link && !item.source && !item.image) continue; // 链接/源码/图 全无才跳过——只写远程「图」的纯图作品（摄影等）也要下载缓存
   const name = item.name !== undefined && item.name !== null ? String(item.name) : "";
-  // 缓存键必须与 src/lib/schema.ts 的 WorkItem.key 公式一致：slugify(名字)||原名，
-  // 不掺 repo——否则清单页按 item.key 查表会查不到，缩略图静默消失
   const slug = itemKey(null, name);
-  if (!slug) continue;
-  try {
-    const cached = EXTS.map((e) => slug + e).find((f) => existsSync(resolve(shotsDir, f)));
-    if (cached && !FORCE) {
-      assets.shots[slug] = `/shots/${cached}`;
-      continue;
-    }
-    if (item.image && !/^https?:/.test(item.image)) continue; // 本地 image 由页面直接引用
-    // 优先仓库自定义 Social preview（作者上传的项目专属图），其次 demo 站 og，最后 GitHub 自动卡片
-    const imgUrl = await resolveThumbUrl(
-      { imageRemote: item.image && /^https?:/.test(item.image) ? item.image : null, repo: ownRepo(item), site: item.link },
-      ghUser,
-    );
-    const f = await download(imgUrl, shotsDir, slug);
-    assets.shots[slug] = `/shots/${f}`;
-    console.log(`✔ 缩略图 ${slug} → public/shots/${f}`);
-  } catch (e) {
-    console.warn(`⚠ 缩略图 ${slug} 失败：${e.message}（该卡退回纯文字）`);
-  }
+  if (!slug || todo.has(slug)) continue;
+  const remote = item.image && /^https?:/.test(item.image) ? item.image : null;
+  // source 为 null = 写了本地图，页面直接引用它，没有可抓的远程图（已缓存的映射仍要保住）
+  todo.set(slug, {
+    source: item.image && !remote ? null : { imageRemote: remote, repo: ownRepo(item), site: item.link },
+  });
+}
+for (const [name] of picked) {
+  if (todo.has(name)) continue; // 与某作品同键：作品那条来源更全（还带手动图/站点 og），不重复抓
+  // 开源节只按仓库找图：长尾仓库 homepage 常是通用图/商店图，故不查站点 og（site: null）
+  todo.set(name, { source: { repo: name, site: null } });
 }
 
-/* ---------- 4) 开源节缩略图（picked 见 1.5；键 = 仓库名，与 data.ts 的 item.key 一致）---------- */
-for (const [name] of picked) {
-  if (assets.shots[name]) continue; // 已在作品循环缓存过（同名）
-  try {
-    const cached = EXTS.map((e) => name + e).find((f) => existsSync(resolve(shotsDir, f)));
-    if (cached && !FORCE) {
-      assets.shots[name] = `/shots/${cached}`;
-      continue;
-    }
-    // 仓库自定义 Social preview 优先，否则 GitHub 自动卡片；长尾仓库 homepage 常是通用图/商店图，故跳过（site: null）
-    const imgUrl = await resolveThumbUrl({ repo: name, site: null }, ghUser);
-    const f = await download(imgUrl, shotsDir, name);
-    assets.shots[name] = `/shots/${f}`;
-    console.log(`✔ 开源缩略图 ${name} → public/shots/${f}`);
-  } catch (e) {
-    console.warn(`⚠ 开源缩略图 ${name} 失败：${e.message}`);
-  }
+const grabShot = async ({ slug, source }) => {
+  const cached = EXTS.map((e) => slug + e).find((f) => existsSync(resolve(shotsDir, f)));
+  if (cached && !FORCE) return `/shots/${cached}`;
+  if (!source) return null;
+  // 优先仓库自定义 Social preview（作者上传的项目专属图），其次 demo 站 og，最后 GitHub 自动卡片
+  const { url, via } = await resolveThumbUrl(source, ghUser);
+  const f = await download(url, shotsDir, slug, 0); // 0 = 挨限流不原地等，留给补抓那一轮
+  console.log(`✔ 缩略图 ${slug} ← ${via} → public/shots/${f}`);
+  return `/shots/${f}`;
+};
+
+const { shots, lost } = await fetchShotsWithRetry(
+  [...todo.entries()].map(([slug, t]) => ({ slug, ...t })),
+  {
+    grab: grabShot,
+    onRetry: (n, ms) =>
+      console.log(`· ${n} 张首轮没抓到（多为 GitHub 自动卡按 IP 限流），冷却 ${Math.round(ms / 1000)}s 后补抓`),
+  },
+);
+Object.assign(assets.shots, shots);
+if (lost.length) {
+  console.warn(`⚠ ${lost.length} 张缩略图两轮都没抓到：${lost.map(({ slug, message }) => `${slug}（${message}）`).join("、")}`);
+  // 少一张图不该让构建失败，但要在 run 页面看得见、且写清怎么自救：重跑一次即可补上
+  console.warn(`::warning title=缩略图缺失::${lost.length} 张缩略图没抓到，这些卡会退回纯文字；重跑本工作流即可补上，不影响构建`);
 }
 
 await writeFile(resolve(ROOT, "src/data/assets.json"), JSON.stringify(assets, null, 2));
