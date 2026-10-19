@@ -27,7 +27,12 @@ export interface UIStrings {
   source: string;
   /** featured 卡片缩略图的 alt 文案，{name} 会被替换成条目名 */
   thumbAlt: string;
-  /** 页脚的数据更新时间前缀，{date} 会被替换 */
+  /**
+   * 页脚的数据更新时间前缀，{date} 会被替换。
+   * 它在页脚里是「·」分隔的独立一项，所以有大小写字母的语言要按句首大写：
+   * de 的 Daten / es 的 Datos / pt 的 Dados / ru 的 Данные 都是名词，小写就是语法错。
+   * 中日韩没有大小写问题，维持原样。
+   */
   updated: string;
   /** 404 页 */
   notFoundTitle: string;
@@ -45,7 +50,7 @@ export const ui: Record<string, UIStrings> = {
     demo: "Try it",
     source: "Source",
     thumbAlt: "{name} preview",
-    updated: "data updated {date}",
+    updated: "Data updated {date}",
     notFoundTitle: "This page doesn't exist",
     notFoundBody: "It may have moved, or it hasn't been built yet.",
     notFoundBack: "Back to home",
@@ -115,7 +120,7 @@ export const ui: Record<string, UIStrings> = {
     demo: "Probarlo",
     source: "Código",
     thumbAlt: "Vista previa de {name}",
-    updated: "datos actualizados el {date}",
+    updated: "Datos actualizados el {date}",
     notFoundTitle: "Esta página no existe",
     notFoundBody: "Puede que haya cambiado de dirección o que aún no exista.",
     notFoundBack: "Volver al inicio",
@@ -129,7 +134,7 @@ export const ui: Record<string, UIStrings> = {
     demo: "Essayer",
     source: "Code source",
     thumbAlt: "Aperçu de {name}",
-    updated: "données mises à jour le {date}",
+    updated: "Données mises à jour le {date}",
     notFoundTitle: "Cette page n'existe pas",
     notFoundBody: "Elle a peut-être changé d'adresse, ou n'existe pas encore.",
     notFoundBack: "Retour à l'accueil",
@@ -137,7 +142,7 @@ export const ui: Record<string, UIStrings> = {
   de: {
     featuredTitle: "Ausgewählt",
     featuredSubtitle: "Sofort nutzbar",
-    worksTitle: "Arbeiten",
+    worksTitle: "Projekte",
     opensourceTitle: "Open Source",
     opensourceMore: "Mehr auf GitHub",
     demo: "Ausprobieren",
@@ -157,7 +162,7 @@ export const ui: Record<string, UIStrings> = {
     demo: "Experimentar",
     source: "Código",
     thumbAlt: "Pré-visualização de {name}",
-    updated: "dados atualizados em {date}",
+    updated: "Dados atualizados em {date}",
     notFoundTitle: "Esta página não existe",
     notFoundBody: "Pode ter mudado de endereço, ou ainda não foi criada.",
     notFoundBack: "Voltar ao início",
@@ -166,12 +171,12 @@ export const ui: Record<string, UIStrings> = {
     featuredTitle: "Избранное",
     featuredSubtitle: "Попробовать",
     worksTitle: "Работы",
-    opensourceTitle: "Открытый код",
+    opensourceTitle: "Открытое ПО",
     opensourceMore: "Ещё на GitHub",
     demo: "Открыть",
     source: "Исходный код",
     thumbAlt: "Превью {name}",
-    updated: "данные обновлены {date}",
+    updated: "Данные обновлены {date}",
     notFoundTitle: "Такой страницы нет",
     notFoundBody: "Возможно, адрес изменился или страница ещё не создана.",
     notFoundBack: "На главную",

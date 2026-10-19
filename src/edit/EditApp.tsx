@@ -79,12 +79,18 @@ export default function EditApp(props: { initialYaml: string; enHasAuthorResidue
   const [loadedCurrent, setLoadedCurrent] = useState(false);
   // 移动端「校样」默认收起（展开时 flex，配 gap 生效）；md+ 始终并排显示（md:flex 覆盖）
   const [showYaml, setShowYaml] = useState(false);
+  // 用户动过手没有（表单改过 或 导入过）。空模板的唯一错误必然是「名字必填」，
+  // 而那一栏标题已经写着「名字（必填）」——一进页面就飘红条等于先训人一顿，
+  // 说的还是他还没造成的错。touched 之前不报错；导入也置位，
+  // 这样「粘进来的 YAML 少了名字」这种真问题照样立刻报出来。
+  const [touched, setTouched] = useState(false);
 
   const update = (fn: (c: EditConfig) => void) => {
     const next = clone(config);
     fn(next);
     setConfig(next);
     setDraft(null);
+    setTouched(true);
   };
 
   // 导出键跟界面语言走：中文界面出中文键、英文界面出英文键（parseSite 都认）
@@ -115,6 +121,7 @@ export default function EditApp(props: { initialYaml: string; enHasAuthorResidue
     }
     setConfig(c);
     setDraft(null);
+    setTouched(true);
   };
   // 「载入当前站配置」专用：与粘贴/上传共用 load()，但额外标记 loadedCurrent——
   // 只有走这条路径才代表用户在看/改自己仓库里已有的配置，enYaml 残留提醒才该出现。
@@ -225,7 +232,7 @@ export default function EditApp(props: { initialYaml: string; enHasAuthorResidue
                 <span class="eyebrow">YAML</span>
                 <span class="mono text-xs text-(--color-accent)">{yamlLines}</span>
               </div>
-              {validationError && (
+              {touched && validationError && (
                 <p class="callout-error text-sm">
                   {t.validationPrefix}
                   {validationError}
