@@ -238,12 +238,14 @@ Don't:
 
 - 断点用 Tailwind 默认：`sm` 640 / `md` 768 / `lg` 1024。
 - 数据条：窄屏 2 列网格（靠 gap 分隔，避免换行留悬空竖线），`sm+` 恢复单排 `divide-x`。
-- 开源网格：`1 → sm:2 → lg:3` 列。`lg:grid-cols-3` 与 `scripts/helpers.mjs` 的末行补齐步长是一对，改列数必须同时改。
+- 开源网格：`1 → sm:2 → lg:3` 列。代表作走同一套台阶，两处一起改以保持观感一致；但**末行补齐那条耦合只跟开源网格有关**——`lg:grid-cols-3` 与 `scripts/helpers.mjs` 的 `DEFAULT_ALIGN_STEP` 是一对（见 `OpenSourceSection.astro` 的 ⚠ 注释），代表作不参与补齐、列数可以自由。代表作别用 `md:grid-cols-3`：768px 就跳 3 列会把 1200×630 的缩略图压到 ~230px 宽。
 - 编辑器：`md-` 单列，「校样」收成按钮展开；`md+` 两栏并排，校样 `sticky`。
 - 390px 下主页不允许出现横向滚动。
 
 ## Known gaps
 
 - `needs-design-decision`：`<meta name="theme-color">` 目前是写死的默认纸白，暗色外观下移动浏览器色带不跟随。彻底修法是把五套主题的色板抽成一份 JS 单一来源、CSS 变量由它生成，属于重构，未在本轮做。
-- `needs-design-decision`：开源节里回退到 GitHub 自动卡片图时，图内已含仓库名与描述，与卡片下方的标题/描述重复。要彻底解决需要在构建时优先抓 og 自定义图或裁掉自动卡片的文字区。
+- `needs-design-decision`：开源节里回退到 GitHub 自动卡片图时，图内已含仓库名与描述，与卡片下方的标题/描述重复。构建时已优先用仓库自定义 Social preview（`fetch-github.mjs` 的 `resolveThumbUrl` + GraphQL 批量确认），重复只发生在**作者没设自定义图**的长尾仓库上；要么说服他们去 GitHub Settings 上传一张，要么裁掉自动卡片的文字区——后者要处理不同语言的文字位置，没做。
+- `info`：开源节排序里的「最近更新」取默认分支上最后一条**非 bot** 提交（`github.json` 的 `humanUpdated`），不是 `pushed_at`——后者被 CI、删分支、发 release 顶到今天，会让自动化替作者领活跃度。取不到时回落 `pushed_at`，行为与加这项之前一致。这条只影响条目顺序，不影响版式。
 - `info`：`/edit` 用 `client:only="preact"`，首屏 HTML 为空，已用 `<noscript>` 兜底说明；不做 SSR 是因为编辑器表单依赖浏览器态。
+- `needs-design-decision`：`/edit` 导入 YAML 失败时走浏览器原生 `alert()`（`EditApp` 的 `load()`），而表单内的校验失败走校样上方的 `{components.callout-error}`——两条错误通道的呈现方式不一致。`alert()` 会打断流程、样式不受主题控制，也没法把「大概第几行出错」一起讲清；改成和校验同一条通道需要先决定在表单哪一处落位。

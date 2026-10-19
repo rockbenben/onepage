@@ -80,9 +80,9 @@ The whole file is flat — one level, no nested sections. The only required fiel
 | 外观 | appearance | | light or dark, `light` (default) / `dark` / `auto` (follows the visitor's system dark mode, pure CSS) |
 | 开源项目 | opensource | | optional, a number = auto-list GitHub repos with ≥ that many stars as an "Open Source" section; `true` = default 10; omit = hidden |
 | 开源项目起始 | opensource_since | | optional, a date (e.g. `2026-03`); repos created after this date are all listed (bypassing the star threshold) |
-| 星标线 | star_line | | optional, the Open Source sort split (default 30): repos above it pin to the top by stars; the rest sort by most-recent update. It doubles as the cut-off for "Open source max" — repos above it always show |
+| 星标线 | star_line | | optional, the Open Source sort split (default 30): repos above it pin to the top by stars; the rest sort by most-recent update, where an update means the newest **non-bot commit** on the default branch (see below). It doubles as the cut-off for "Open source max" — repos above it always show |
 | 开源上限 | opensource_max | | optional, caps **only the tail below the star line** (e.g. `15`; `0` = high-star repos only); the total rounds up to a multiple of 3 to fill the last row of the 3-column grid; high-star repos above it always show; omit = list all |
-| 开源排除 | opensource_exclude | | optional, a list of repo names (`- repo`) to keep out of the Open Source section (e.g. this template repo itself); case-insensitive |
+| 开源排除 | opensource_exclude | | optional, a list of repo names (`- repo`) to keep out of the Open Source section (e.g. this template repo itself, empty shells); accepts a bare repo name or a full GitHub URL; case-insensitive |
 | 开源命名 | opensource_names | | optional, a `repo: display name` map (e.g. `md-translator: MD Translator`); changes only the display name in the Open Source section; thumbnails/links still use the original repo; omit = use the GitHub name |
 | 开源描述 | opensource_descriptions | | optional, a `repo: description` map that overrides the GitHub-fetched description in the Open Source section; **translatable** — put the English in `projects.en.yaml`'s field of the same name, so each language shows its own; omit = use the GitHub description |
 | 页脚 | footer | | footer sign-off; `<a>` links allowed |
@@ -112,6 +112,17 @@ The whole file is flat — one level, no nested sections. The only required fiel
 Set `opensource: 10` and the build auto-lists your GitHub repos with ≥ 10 stars as an "Open Source" section (repos above the star line pin to the top by stars, the rest sort by most-recent update; forks/archived excluded, deduped against featured/manual works — no hand-copying). Each row carries a **source** link, plus a **demo/store** link when the repo has a homepage.
 
 Add `opensource_since: 2026-03` and every repo created after that date is listed too (regardless of stars) — for showing breadth when you ship a lot.
+
+Repos you don't want on the page (empty shells, experiments, this template itself) go in `开源排除`:
+
+```yaml
+开源排除:
+  - onepage
+  - js-opencc
+  - https://github.com/rockbenben/docs-tools-by-ai   # bare repo name or full URL both work
+```
+
+> **How "most-recent update" is computed**: the newest **non-bot commit on the default branch**. GitHub's `pushed_at` records "last write to any ref" — a CI run, a branch delete, a release all bump it to today. Measured on one repo with a busy CI, `pushed_at` ran 14 days ahead of its last human commit. Sorting "what am I still working on" by that hands your activity score to automation, so the build looks the human commit time up separately (one batched GraphQL query, no extra per-repo requests). If it can't be fetched (no token / query fails) it falls back to `pushed_at` and behaves exactly as before.
 
 > **How many get shown**: everything above the `星标线` (star line) always shows — those are your headline repos and shouldn't be cut off; `开源上限` only trims the long tail below the line (most-recently-updated first). So 8 above the line + a limit of 15 = 23, rounded up to **24** cards — the grid is 3 columns, and padding it keeps the last row full (if candidates run out, you get however many there are). Set it once and forget it: when the high-star group grows, it can never push your best repos out; whatever gets trimmed is covered by the "See more on GitHub" link at the end.
 
@@ -208,7 +219,7 @@ appearance: dark
 
 GitHub Pages (Path 1) is the zero-config default. Alternatives:
 
-- **Cloudflare Pages**: connect the repo, build command `npm run build`, output directory `dist`, optional `GITHUB_TOKEN` env var.
+- **Cloudflare Pages**: connect the repo, build command `npm run build`, output directory `dist`, and add a `GITHUB_TOKEN` env var (**strongly recommended** — not just for rate limits: GraphQL requires auth, and without it "most-recent update" falls back to `pushed_at`, so repos bumped by CI or branch deletions outrank genuinely active work, and thumbnails fall back to per-repo page fetches).
 
 > `public/shots/` and `public/avatar-auto.*` are generated at build time and are git-ignored — you don't need to (and shouldn't) commit them.
 
