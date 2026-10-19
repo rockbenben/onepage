@@ -43,7 +43,7 @@ export interface EditConfig {
   // 开源节仓库名→显示名/描述映射。编辑器无专用 UI，仅原样往返保留（进阶字段，一般直接改 YAML）。
   opensourceNames: Record<string, string>;
   opensourceDescriptions: Record<string, string>;
-  opensourceExclude: string[]; // 排除的仓库名列表，原样往返保留（无专用 UI）
+  opensourceExclude: string[]; // 排除的仓库列表，元素可以是裸仓库名或完整 GitHub 网址；原样往返保留（无专用 UI）
   footer: string;
   mark: string;
   lang: string;

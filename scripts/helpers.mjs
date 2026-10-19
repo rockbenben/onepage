@@ -214,6 +214,21 @@ export function repoFromUrl(u) {
   return m ? { owner: m[1], repo: m[2].replace(/\.git$/, "") } : null;
 }
 
+/**
+ * 仓库名列表归一（开源排除用）：既收裸仓库名（js-opencc），也收完整 GitHub 网址
+ * （https://github.com/rockbenben/js-opencc）——用户看的是仓库页面，手上通常只有链接，
+ * 直接粘进 YAML 是最自然的写法。
+ * 不归一的代价是静默失效：URL 会被当成一个字面仓库名去比对，永远匹配不上，
+ * 且既不报错也不告警，排除名单看着写好了、仓库照旧出现在页面上。排查起来只能靠人眼。
+ * 非字符串/空串丢掉（是否该告警由调用方决定，它有 where 文案可用）。
+ */
+export function repoNamesFrom(list) {
+  if (!Array.isArray(list)) return [];
+  return list
+    .filter((x) => typeof x === "string" && x.trim() !== "")
+    .map((x) => repoFromUrl(x.trim())?.repo ?? x.trim());
+}
+
 /** 零配置纠错：裸邮箱补 mailto:、裸域名补 https://；带协议/站内路径原样 */
 export function fixUrl(u) {
   const s = String(u ?? "").trim();

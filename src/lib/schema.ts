@@ -1,7 +1,7 @@
 // schema v2：拍平、中英双认、唯一必填「名字」。复杂度进渲染器，不进配置面。
 // 别名表与 URL 工具在 scripts/helpers.mjs（与 node 脚本共用，单一权威）。
 // @ts-ignore -- 纯 ESM 模块无类型声明；vite/vitest/astro 都能正常打包
-import { TOP_ALIAS, WORK_ALIAS, LANG_NAME_ALIAS, THEME_ALIAS, APPEARANCE_ALIAS, repoFromUrl, fixUrl, slugify } from "../../scripts/helpers.mjs";
+import { TOP_ALIAS, WORK_ALIAS, LANG_NAME_ALIAS, THEME_ALIAS, APPEARANCE_ALIAS, repoFromUrl, repoNamesFrom, fixUrl, slugify } from "../../scripts/helpers.mjs";
 export { slugify };
 
 export type ThemeName = "朱砂" | "靛蓝" | "森绿" | "暖褐" | "墨黑";
@@ -246,11 +246,12 @@ export function parseSite(raw: unknown): { site: SiteData; warnings: string[] } 
   };
   const opensourceNames = parseRepoMap(top.opensourceNames, "开源命名");
   const opensourceDescriptions = parseRepoMap(top.opensourceDescriptions, "开源描述");
-  // 开源排除：仓库名列表；收非空字符串，空列表不落
+  // 开源排除：仓库名列表；收非空字符串，空列表不落。条目可以是裸仓库名，也可以是完整
+  // GitHub 网址（repoNamesFrom 归一）——后者不归一会静默匹配不上，见 helpers.mjs 的说明
   let opensourceExclude: string[] | undefined;
   if (top.opensourceExclude !== undefined) {
     if (Array.isArray(top.opensourceExclude)) {
-      const list = top.opensourceExclude.filter((x): x is string => typeof x === "string" && x !== "");
+      const list = repoNamesFrom(top.opensourceExclude);
       if (list.length) opensourceExclude = list;
     } else {
       warn(`「开源排除」要写成仓库名的列表（- 仓库名），已忽略`);

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { parseOgImage, extFromContentType, ghUserFrom, slugify } from "../scripts/helpers.mjs";
 import { repoFromUrl, fixUrl, loadConfig, TOP_ALIAS, WORK_ALIAS, LANG_NAME_ALIAS } from "../scripts/helpers.mjs";
+import { repoNamesFrom } from "../scripts/helpers.mjs";
 import { selectOpensourceRepos } from "../scripts/helpers.mjs";
 import { fetchShotsWithRetry, SHOT_COOLDOWN_MS } from "../scripts/helpers.mjs";
 import { slugify as schemaSlugify } from "../src/lib/schema";
@@ -23,6 +24,29 @@ describe("fixUrl 零配置纠错", () => {
     expect(fixUrl("https://a.com")).toBe("https://a.com");
     expect(fixUrl("mailto:a@b.c")).toBe("mailto:a@b.c");
     expect(fixUrl("/resume.pdf")).toBe("/resume.pdf"); // 站内路径不动
+  });
+});
+
+describe("repoNamesFrom：排除名单既收裸仓库名也收完整 GitHub 网址", () => {
+  it("网址剥出仓库名；裸名原样；混着写也行", () => {
+    expect(repoNamesFrom(["js-opencc", "https://github.com/rockbenben/docs-tools-by-ai"])).toEqual([
+      "js-opencc",
+      "docs-tools-by-ai",
+    ]);
+    expect(repoNamesFrom(["https://github.com/u/r/tree/main/x"])).toEqual(["r"]); // 深链按仓库取
+    expect(repoNamesFrom([" https://github.com/u/r.git "])).toEqual(["r"]); // 空格/ .git 都吃掉
+  });
+  it("空串/空白/非字符串丢掉，非数组当空", () => {
+    expect(repoNamesFrom(["", "   ", 42, null, "ok"])).toEqual(["ok"]);
+    expect(repoNamesFrom(undefined)).toEqual([]);
+    expect(repoNamesFrom("js-opencc")).toEqual([]); // 写错形状 → 空，告警交给调用方
+  });
+  it("回归：不归一时 URL 会静默匹配不上（这正是要归一的原因）", () => {
+    // 直接当字面仓库名去比对 selectOpensourceRepos 的 key → 永远排除不掉
+    const repos = { "js-opencc": { stars: 5, updated: "", created: "2020-01-01", url: "", description: null, fork: false, archived: false } };
+    const opts = { usedRepos: new Set(), threshold: 1, align: 1 };
+    expect(selectOpensourceRepos(repos, opts).map(([n]) => n)).toEqual(["js-opencc"]);
+    expect(selectOpensourceRepos(repos, { ...opts, exclude: new Set(repoNamesFrom(["https://github.com/u/js-opencc"])) })).toEqual([]);
   });
 });
 

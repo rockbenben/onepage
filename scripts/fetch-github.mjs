@@ -22,6 +22,7 @@ import {
   ghUserFrom,
   itemKey,
   repoFromUrl,
+  repoNamesFrom,
   fixUrl,
   loadConfig,
   selectOpensourceRepos,
@@ -115,7 +116,7 @@ const osStarLine = typeof top.starLine === "number" ? top.starLine : DEFAULT_STA
 // 这里照样传 max，是为了只抓「真会渲染出来」的那批缩略图，不给被截掉的仓库白抓图；
 // 向上补足到 3 的倍数的那几张走同一条路径，所以抓图与渲染天然一致。
 const osMax = typeof top.opensourceMax === "number" ? top.opensourceMax : undefined;
-const osExclude = new Set((Array.isArray(top.opensourceExclude) ? top.opensourceExclude : []).filter((s) => typeof s === "string").map((s) => s.toLowerCase()));
+const osExclude = new Set(repoNamesFrom(top.opensourceExclude).map((s) => s.toLowerCase()));
 let ghMap = {}; // github.json 的 repos 映射，抓好后供开源缩略图循环复用
 const wantGh = Boolean(ghUser && (hasAutoStat || top.opensource !== undefined || works.some((w) => ownRepo(w))));
 if (wantGh) {
