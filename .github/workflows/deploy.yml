@@ -18,7 +18,7 @@ jobs:
     name: 🎉 Deploy
     runs-on: ubuntu-latest
     env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # 供 fetch 脚本提升 GitHub API 限额
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # 供 fetch 脚本用；GraphQL 强制鉴权，缺了它「最近更新」会回落到 pushed_at、缩略图退回逐仓库抓页面
     steps:
       - name: Checkout 🛎️
         uses: actions/checkout@v7

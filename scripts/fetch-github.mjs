@@ -1,6 +1,7 @@
 /**
  * 构建时抓取一切远程资源，页面运行时零请求：
- *   1) GitHub 仓库数据（stars 等）→ src/data/github.json （无 GitHub 配置则跳过）
+ *   1) GitHub 仓库数据（stars 等）+ 每个候选仓库「最后一条人工提交」时间 → src/data/github.json
+ *      （无 GitHub 配置则跳过；人工提交时间要 GITHUB_TOKEN，见 fetchHumanUpdated）
  *   2) 头像（头像 远程 URL 或 GitHub 头像）→ public/avatar-auto.*
  *   3) 全部作品缩略图（图 字段 > 仓库自定义 Social preview > 链接 的 og:image > GitHub 社交卡片）→ public/shots/
  * 资源映射写入 src/data/assets.json。已存在的文件增量跳过，--force 重抓。
@@ -9,7 +10,11 @@
  * 任何单项失败只 warn，不中断构建。
  *
  * 用法：node scripts/fetch-github.mjs [--force]
- * 可选：GITHUB_TOKEN 提升 API 限额（Actions 里自动有）。
+ * GITHUB_TOKEN：不带也能跑，但 GraphQL 强制鉴权，缺了它就会退化成：
+ *   · 「最近更新」回落 pushed_at——CI 推一次、删个分支都会把仓库顶到今天，
+ *     于是「你最近在忙什么」排出来的不是真人活动；
+ *   · 缩略图退回逐仓库抓页面解析 og:image（每仓库多一次 HTTP）。
+ * Actions 里 secrets.GITHUB_TOKEN 自动有，所以 CI 上永远是完整的那条路径。
  */
 import { writeFile, mkdir, readFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -117,6 +122,14 @@ const osStarLine = typeof top.starLine === "number" ? top.starLine : DEFAULT_STA
 // 向上补足到 3 的倍数的那几张走同一条路径，所以抓图与渲染天然一致。
 const osMax = typeof top.opensourceMax === "number" ? top.opensourceMax : undefined;
 const osExclude = new Set(repoNamesFrom(top.opensourceExclude).map((s) => s.toLowerCase()));
+// 选仓参数只在下面拼一次，抓「人工更新时间」和最终渲染复用同一份口径，免得两处漂移
+const osSelect = {
+  usedRepos: new Set(works.map((w) => ownRepo(w)).filter(Boolean).map((s) => s.toLowerCase())),
+  threshold: osThreshold,
+  since: osSince,
+  starLine: osStarLine,
+  exclude: osExclude,
+};
 let ghMap = {}; // github.json 的 repos 映射，抓好后供开源缩略图循环复用
 const wantGh = Boolean(ghUser && (hasAutoStat || top.opensource !== undefined || works.some((w) => ownRepo(w))));
 if (wantGh) {
@@ -159,6 +172,12 @@ if (wantGh) {
         created: r.created_at,
       };
     }
+    // 「最近更新」改用默认分支上最后一条人工提交（见 fetchHumanUpdated）。
+    // 必须在写盘之前查：排序读的是 github.json，漏写就等于这次构建没生效。
+    // 候选名单故意不传 max —— 要排的是全候选，被截掉的那批同样得有个时间可排。
+    const candidates = osThreshold === undefined ? [] : selectOpensourceRepos(map, osSelect).map(([n]) => n);
+    const humanDates = await fetchHumanUpdated(ghUser, candidates);
+    for (const [n, at] of Object.entries(humanDates ?? {})) if (map[n]) map[n].humanUpdated = at;
     ghMap = map;
     await mkdir(resolve(ROOT, "src/data"), { recursive: true });
     await writeFile(
@@ -177,15 +196,20 @@ if (wantGh) {
 // 选仓提前到这里，好和作品仓库一起进下面那次 GraphQL 批量查询
 const picked =
   osThreshold !== undefined && ghUser && Object.keys(ghMap).length
-    ? selectOpensourceRepos(ghMap, {
-        usedRepos: new Set(works.map((w) => ownRepo(w)).filter(Boolean).map((s) => s.toLowerCase())),
-        threshold: osThreshold,
-        since: osSince,
-        starLine: osStarLine,
-        max: osMax,
-        exclude: osExclude,
-      })
+    ? selectOpensourceRepos(ghMap, { ...osSelect, max: osMax })
     : [];
+
+/** GraphQL 一次 POST（两个批量查询共用）。强制鉴权，所以调用方都得先看 token 在不在 */
+async function graphql(query) {
+  const res = await get("https://api.github.com/graphql", {
+    Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+    "Content-Type": "application/json",
+  }, { method: "POST", body: JSON.stringify({ query }) });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const { data, errors } = await res.json();
+  if (!data) throw new Error(`无 data 字段${errors ? `：${errors[0]?.message ?? ""}` : ""}`);
+  return data;
+}
 
 /**
  * 一次 GraphQL 批量拿「哪些仓库设了自定义 Social preview、图在哪」。
@@ -199,13 +223,7 @@ async function fetchCustomPreviews(user, repos) {
   if (!process.env.GITHUB_TOKEN || !user || !repos.length) return null;
   try {
     const q = `{${repos.map((r, i) => `r${i}:repository(owner:"${user}",name:"${r}"){usesCustomOpenGraphImage openGraphImageUrl}`).join(" ")}}`;
-    const res = await get("https://api.github.com/graphql", {
-      Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
-      "Content-Type": "application/json",
-    }, { method: "POST", body: JSON.stringify({ query: q }) });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const { data } = await res.json();
-    if (!data) throw new Error("无 data 字段");
+    const data = await graphql(q);
     const map = {};
     repos.forEach((r, i) => {
       const n = data[`r${i}`];
@@ -216,6 +234,46 @@ async function fetchCustomPreviews(user, repos) {
   } catch (e) {
     console.warn(`⚠ GraphQL 查 Social preview 失败：${e.message}（回退逐仓库抓页面）`);
     return null;
+  }
+}
+
+/**
+ * 每个候选仓库「默认分支上最后一条非 bot 提交」的时间，存成 github.json 的 humanUpdated。
+ * 开源节的「最近更新」排序改用它（见 helpers.selectOpensourceRepos 的 touched）。
+ *
+ * 为什么不能直接用 REST 给的 pushed_at：pushed_at 记的是「最后一次对任意引用的写操作」，
+ * CI 跑一次、删个分支、发个 release 都会把它顶到今天。实测 2026-10 这位站主的仓库：
+ *   · free-llm-intel 被两条 github-actions[bot] 提交顶到 10-19，最后人工提交其实是 10-17；
+ *   · shiye 10-08 删了个分支，「最后更新」就从 09-26 变成 10-08。
+ * 拿它排「最近还在维护什么」，等于让自动化替作者领活跃度——被 bot 顶上去的正是
+ * 「你最近在忙什么」最该如实反映的地方。
+ *
+ * bot 判定看 author.user.login 的 [bot] 后缀：GitHub 不允许真人账号带这个后缀，
+ * 实测与 REST 的 commit.author.type === "Bot" 逐仓库对过，结果一致。
+ * 提交关联不到账号（user 为 null，私有邮箱没注册）算人工提交——宁可保守也别把真人的丢掉。
+ * 只扫最近 50 条；全是 bot（或仓库空 / 无默认分支）就不写这个字段，排序自动回落 pushed_at。
+ * 无 token / 查询失败返回空对象：字段整片缺失时行为与改动前完全一致，不算坏。
+ */
+async function fetchHumanUpdated(user, repos) {
+  if (!process.env.GITHUB_TOKEN || !user || !repos.length) return {};
+  try {
+    const field =
+      "defaultBranchRef{ target{ ... on Commit { history(first:50){ nodes{ committedDate author{ user{ login } } } } } } }";
+    const q = `{${repos.map((r, i) => `r${i}:repository(owner:"${user}",name:"${r}"){${field}}`).join(" ")}}`;
+    const data = await graphql(q);
+    const map = {};
+    for (const [i, name] of repos.entries()) {
+      const nodes = data[`r${i}`]?.defaultBranchRef?.target?.history?.nodes ?? [];
+      const hit = nodes.find((c) => !/\[bot\]$/i.test(c?.author?.user?.login ?? ""));
+      if (hit?.committedDate) map[name] = hit.committedDate;
+    }
+    const missed = repos.length - Object.keys(map).length;
+    console.log(`✔ ${Object.keys(map).length}/${repos.length} 个仓库取到「最后人工提交」时间（GraphQL）`);
+    if (missed) console.log(`· ${missed} 个没有人工提交可记（空仓库/最近全是 bot），排序回落到 pushed_at`);
+    return map;
+  } catch (e) {
+    console.warn(`⚠ GraphQL 查最后人工提交失败：${e.message}（「最近更新」回落 pushed_at）`);
+    return {};
   }
 }
 

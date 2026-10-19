@@ -15,6 +15,8 @@ export interface GhRepo {
   stars: number;
   language: string | null;
   updated: string;
+  /** 默认分支上最后一条非 bot 提交；开源节「最近更新」排序优先用它，取不到才回落 updated */
+  humanUpdated?: string;
   url: string;
   description: string | null;
   homepage?: string | null;
@@ -111,7 +113,8 @@ export function thumbOf(item: WorkItem): string | undefined {
 /**
  * 从抓来的仓库列表装配「开源项目」节：
  * 过滤（非 fork/归档、与重点/手列去重、star≥阈值 或 创建于 since 之后），
- * 排序：star > starLine 的高星作品排前、按 star 降序；其余排后、按最近修改（updated）降序。映射成 WorkItem。
+ * 排序：star > starLine 的高星作品排前、按 star 降序；其余排后、按最近更新（humanUpdated，
+ * 缺省回落 pushed_at，见 helpers.selectOpensourceRepos）降序。映射成 WorkItem。
  * max（开源上限）只截断尾巴（star ≤ starLine），高星组永远全显——规则见 helpers.selectOpensourceRepos。
  * 纯函数（不读全局 gh/baseSite），便于单测。
  */

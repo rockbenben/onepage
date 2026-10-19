@@ -40,8 +40,8 @@ export interface SiteData {
   themeName: ThemeName;
   appearance: Appearance;
   opensource?: number; // star 阈值；写了才显示「开源项目」节
-  opensourceSince?: string; // 此日期后创建的仓库绕过阈值全列（365 计划期）
-  starLine?: number; // 排序分界：star 超过此数的置顶按 star 排、其余按最近更新排（默认 30）；同时是「开源上限」的分界，线上的高星组永远全显
+  opensourceSince?: string; // 此日期后创建的仓库绕过阈值全列（365 计划期）。判据只能是 created_at：实测站里这批仓库没有统一 topic，按 topic 筛不出来（别再改回 topic 判定）
+  starLine?: number; // 排序分界：star 超过此数的置顶按 star 排、其余按最近更新排（默认 30）；同时是「开源上限」的分界，线上的高星组永远全显。「最近更新」取默认分支上最后一条非 bot 提交（humanUpdated），没有才回落 pushed_at，见 helpers.selectOpensourceRepos
   opensourceMax?: number; // 尾巴（star ≤ 星标线）最多再列几个；总数会向上补到 3 的倍数凑满网格行；0=只列高星组（不补）；高星组永远全显；不写=不限
   opensourceNames?: Record<string, string>; // 开源节仓库名→显示名映射（仅改展示名，缩略图/链接仍按原 repo）
   opensourceDescriptions?: Record<string, string>; // 开源节仓库名→描述映射（按语言覆盖 GitHub 原描述；en 翻译写在 projects.en.yaml）

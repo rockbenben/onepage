@@ -227,6 +227,46 @@ describe("selectOpensourceRepos：总数向上对齐到 3 的倍数（凑满网�
   });
 });
 
+describe("selectOpensourceRepos：「最近更新」用最后人工提交，不被 bot/CI 顶上去", () => {
+  // 实测过的形状：pushed_at 被 bot 提交或删分支顶到今天，最后人工提交其实早得多
+  const repo = (stars, updated, humanUpdated) => ({
+    stars,
+    updated,
+    ...(humanUpdated !== undefined && { humanUpdated }),
+    created: "2020-01-01T00:00:00Z",
+    language: null,
+    url: "https://github.com/u/r",
+    description: null,
+    fork: false,
+    archived: false,
+  });
+  const repos = {
+    // CI 天天推，最后人工提交停在 9 月
+    "bot-fresh": repo(5, "2026-10-19T00:00:00Z", "2026-09-01T00:00:00Z"),
+    // 正常维护，最近真的有活
+    "human-fresh": repo(4, "2026-10-02T00:00:00Z", "2026-10-18T00:00:00Z"),
+    hi: repo(100, "2020-01-01T00:00:00Z", "2020-01-01T00:00:00Z"), // 高星组不受影响
+  };
+  const opts = { usedRepos: new Set(), threshold: 1, starLine: 20 };
+  const names = (o) => selectOpensourceRepos(repos, { ...opts, ...o }).map(([n]) => n);
+
+  it("按 humanUpdated 排：bot 天天推的仓库不再霸占第一位", () => {
+    expect(names({})).toEqual(["hi", "human-fresh", "bot-fresh"]);
+  });
+
+  it("没有 humanUpdated 时回落 pushed_at，行为与改动前完全一致", () => {
+    const plain = { "bot-fresh": repo(5, "2026-10-19T00:00:00Z"), "human-fresh": repo(4, "2026-10-02T00:00:00Z"), hi: repo(100, "2020-01-01T00:00:00Z") };
+    expect(selectOpensourceRepos(plain, opts).map(([n]) => n)).toEqual(["hi", "bot-fresh", "human-fresh"]);
+  });
+
+  it("部分仓库缺 humanUpdated（个别查询失败）时不崩：缺的按 pushed_at 补位，可能排到人工日期更早的仓库前面", () => {
+    // 这是回落口径的已知代价，也是「整片缺失时行为与改动前一致」的另一种写法：
+    // 拿不到人工日期的仓库仍可能被 CI 顶上去，只是不会连累其他仓库。
+    const partial = { ...repos, "human-fresh": repo(4, "2026-10-02T00:00:00Z") };
+    expect(selectOpensourceRepos(partial, opts).map(([n]) => n)).toEqual(["hi", "human-fresh", "bot-fresh"]);
+  });
+});
+
 describe("fetchShotsWithRetry：挨限流的图攒起来，冷却后整批补抓一次", () => {
   const items = [{ slug: "a" }, { slug: "b" }, { slug: "c" }];
   const noSleep = () => Promise.resolve();

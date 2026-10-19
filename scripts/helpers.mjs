@@ -126,9 +126,15 @@ export const SHOT_COOLDOWN_MS = 60000;
 
 /**
  * 开源节的仓库选取（过滤/去重/排序/可选上限），供 src/lib/data.ts 渲染与 fetch-github.mjs 抓图共用，
- * 单一权威避免两处逻辑跑偏。repos = github.json 形状 {name: {stars, created, updated, fork, archived, …}}。
+ * 单一权威避免两处逻辑跑偏。repos = github.json 形状 {name: {stars, created, updated, humanUpdated, fork, archived, …}}。
  * usedRepos = 已被重点/手列占用的仓库名集合（小写）。exclude = 手动排除的仓库名集合（小写）。
- * 排序：star>starLine 的按 star 降序在前，其余按最近 updated 降序。
+ * 排序：star>starLine 的按 star 降序在前，其余按最近更新降序。
+ *
+ * 「最近更新」取 humanUpdated（默认分支上最后一条非 bot 提交，见 fetch-github.mjs 的
+ * fetchHumanUpdated），没有才回落 updated（pushed_at）。pushed_at 是「最后一次对任意
+ * 引用（任何分支/tag）有写操作」，CI 跑一次、删个分支、打个 release 都会把它顶到今天——
+ * 拿它排「最近还在维护的项目」等于让自动化替作者领活跃度。回落是必须的：拿不到 token /
+ * GraphQL 失败时 humanUpdated 整片缺失，此时行为与改动前完全一致。
  *
  * max（开源上限）只限制**尾巴**（star ≤ starLine 的那批）最多列几个；高星组永远全显。
  * 写 0 = 尾巴一个都不列（只留高星组）；不写 = 不限。
@@ -148,12 +154,14 @@ export function selectOpensourceRepos(repos, { usedRepos, threshold, since, star
       !excluded.has(name.toLowerCase()) &&
       (r.stars >= threshold || (since !== undefined && (r.created ?? "") >= since)),
   );
+  // 排序用的人工更新时间；没有就退回 pushed_at（见函数注释：为什么要这层回落）
+  const touched = (r) => r.humanUpdated || r.updated || "";
   entries.sort((a, b) => {
     const aHi = a[1].stars > starLine;
     const bHi = b[1].stars > starLine;
     if (aHi !== bHi) return aHi ? -1 : 1;
     if (aHi) return b[1].stars - a[1].stars || a[0].localeCompare(b[0]);
-    return (b[1].updated ?? "").localeCompare(a[1].updated ?? "") || a[0].localeCompare(b[0]);
+    return touched(b[1]).localeCompare(touched(a[1])) || a[0].localeCompare(b[0]);
   });
   if (max === undefined) return entries;
   // 排序保证高星组是前缀，所以尾巴起点 = 第一个非高星项；高星组全取，尾巴再取 max 个
