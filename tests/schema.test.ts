@@ -21,6 +21,15 @@ describe("parseSite v2 基础", () => {
   it("缺名字：致命", () => {
     expect(() => normalizeSite(load("介绍: x"))).toThrow(/名字|name/);
   });
+  it("名字只有空格：同样视为缺失", () => {
+    expect(() => normalizeSite(load('名字: "   "'))).toThrow(/名字|name/);
+  });
+  it("作品名字只有空格：告警并跳过", () => {
+    const { site, warnings } = parseSite(load('名字: A\n作品:\n  - 名字: "   "\n    介绍: x\n'));
+    expect(site.featured).toEqual([]);
+    expect(site.groups.flatMap((g) => g.items)).toEqual([]);
+    expect(warnings.join(" ")).toMatch(/缺「名字」/);
+  });
   it("英文别名与中文写法产出一致", () => {
     const zh = parseSite(load("名字: A\n作品:\n  - 名字: W\n    重点: true\n")).site;
     const en = parseSite(load("name: A\nworks:\n  - name: W\n    star: true\n")).site;
@@ -55,6 +64,30 @@ describe("重点 / 分类分拣", () => {
   it("裸域名/裸邮箱链接被补全", () => {
     expect(site.links.find((l) => l.label === "博客")!.url).toBe("https://example.com");
     expect(site.links.find((l) => l.label === "邮箱")!.url).toBe("mailto:hi@example.com");
+  });
+});
+
+describe("空链接 / 空数据条目", () => {
+  it("空标签或空网址的链接告警并跳过", () => {
+    const { site, warnings } = parseSite(
+      load("名字: A\n链接:\n  - '': https://x.com\n  - GitHub: ''\n  - '   ': https://y.com\n  - 博客: https://example.com\n"),
+    );
+    expect(site.links).toEqual([{ label: "博客", url: "https://example.com" }]);
+    const text = warnings.join(" ");
+    expect(text).toMatch(/链接第 1 条缺「标签」或「网址」/);
+    expect(text).toMatch(/链接第 2 条缺「标签」或「网址」/);
+    expect(text).toMatch(/链接第 3 条缺「标签」或「网址」/);
+  });
+
+  it("空标签或空值的数据告警并跳过", () => {
+    const { site, warnings } = parseSite(
+      load("名字: A\n数据:\n  - '': 10\n  - Stars: ''\n  - '   ': 5\n  - 项目: 3\n"),
+    );
+    expect(site.stats).toEqual([{ label: "项目", value: 3 }]);
+    const text = warnings.join(" ");
+    expect(text).toMatch(/数据第 1 条缺「标签」或「值」/);
+    expect(text).toMatch(/数据第 2 条缺「标签」或「值」/);
+    expect(text).toMatch(/数据第 3 条缺「标签」或「值」/);
   });
 });
 

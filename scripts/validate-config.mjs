@@ -3,7 +3,7 @@
 // 用人话指出大概第几行，并说明「网站没被破坏，还是上一次的样子」。
 import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
-import { loadConfig, DEFAULT_STAR_LINE } from "./helpers.mjs";
+import { loadConfig, DEFAULT_STAR_LINE, isBlank, WORK_ALIAS } from "./helpers.mjs";
 
 const DIR = resolve(process.cwd(), "src/data");
 
@@ -141,6 +141,76 @@ for (const f of [...new Set(files)]) {
     for (const lines of problems) {
       bad++;
       frame(lines);
+    }
+  }
+
+  // 空链接 / 空数据：schema 会告警并跳过，但只手写 YAML 的人只跑 validate 时
+  // 会以为配置生效。这里硬拦，和 /edit 的必填口径保持一致。
+  // 只查主文件：链接/数据是主文件的结构字段，翻译文件只用「文字」字典换标签，
+  // 这两个数组即使写了也会被 merge 忽略，硬拦会造成假失败。
+  if (f === "projects.yaml") {
+    const entryProblems = [];
+    const links = doc?.链接 ?? doc?.links;
+    if (Array.isArray(links)) {
+      links.forEach((item, i) => {
+        if (!item || typeof item !== "object" || Array.isArray(item)) return;
+        const entries = Object.entries(item);
+        if (entries.length !== 1) return;
+        const [label, url] = entries[0];
+        if (isBlank(label) || typeof url !== "string" || isBlank(url)) {
+          entryProblems.push([
+            `src/data/${f} 的链接第 ${i + 1} 条缺「标签」或「网址」。`,
+            `空标签会渲染成没有文字的空按钮，空网址点了没反应；请补上或删掉这一条。`,
+          ]);
+        }
+      });
+    }
+    const stats = doc?.数据 ?? doc?.stats;
+    if (Array.isArray(stats)) {
+      stats.forEach((item, i) => {
+        if (!item || typeof item !== "object" || Array.isArray(item)) return;
+        const entries = Object.entries(item);
+        if (entries.length !== 1) return;
+        const [label, value] = entries[0];
+        if (isBlank(label) || isBlank(value)) {
+          entryProblems.push([
+            `src/data/${f} 的数据第 ${i + 1} 条缺「标签」或「值」。`,
+            `空标签或空值会在首页留下一条空白数据；请补全或删掉这一条。`,
+          ]);
+        }
+      });
+    }
+    const works = doc?.作品 ?? doc?.works;
+    if (Array.isArray(works)) {
+      works.forEach((item, i) => {
+        if (!item || typeof item !== "object" || Array.isArray(item)) return;
+        const hasContent = Object.entries(item).some(([key, value]) => {
+          const canon = WORK_ALIAS[key];
+          if (!canon || canon === "name") return false;
+          return canon === "star" ? value === true : !isBlank(value);
+        });
+        if (hasContent && isBlank(item.名字 ?? item.name)) {
+          entryProblems.push([
+            `src/data/${f} 的作品第 ${i + 1} 条有内容但缺「名字」。`,
+            `缺名字的整条作品会被首页跳过；请补上名字或删掉这一条。`,
+          ]);
+        }
+      });
+    }
+    for (const lines of entryProblems) {
+      bad++;
+      frame(lines);
+    }
+  }
+
+  if (f !== "projects.yaml") {
+    // 作品/文字/开源描述在翻译文件里是合法的可译字段；只有链接/数据这类
+    // 结构字段会被 merge 忽略，别把它们误报成无效内容。
+    const structural = ["链接", "links", "数据", "stats"].filter((k) => doc?.[k] !== undefined);
+    if (structural.length > 0) {
+      console.warn(
+        `⚠ src/data/${f} 里的 ${structural.join(" / ")} 是主文件的结构字段；翻译文件只认可译字段（文字 / 作品 / 开源描述等），这里写的内容不会生效。`,
+      );
     }
   }
 }

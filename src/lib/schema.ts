@@ -1,7 +1,7 @@
 // schema v2：拍平、中英双认、唯一必填「名字」。复杂度进渲染器，不进配置面。
 // 别名表与 URL 工具在 scripts/helpers.mjs（与 node 脚本共用，单一权威）。
 // @ts-ignore -- 纯 ESM 模块无类型声明；vite/vitest/astro 都能正常打包
-import { TOP_ALIAS, WORK_ALIAS, LANG_NAME_ALIAS, THEME_ALIAS, APPEARANCE_ALIAS, repoFromUrl, repoNamesFrom, fixUrl, slugify } from "../../scripts/helpers.mjs";
+import { TOP_ALIAS, WORK_ALIAS, LANG_NAME_ALIAS, THEME_ALIAS, APPEARANCE_ALIAS, repoFromUrl, repoNamesFrom, fixUrl, isBlank, slugify } from "../../scripts/helpers.mjs";
 export { slugify };
 
 export type ThemeName = "朱砂" | "靛蓝" | "森绿" | "暖褐" | "墨黑";
@@ -115,18 +115,26 @@ export function parseSite(raw: unknown): { site: SiteData; warnings: string[] } 
   if (raw === null || typeof raw !== "object" || Array.isArray(raw))
     throw new Error("配置必须是「字段: 值」的映射 / config must be a key-value mapping");
   const top = normalizeKeys(raw as Record<string, unknown>, TOP_ALIAS, "", warn);
-  if ((typeof top.name !== "string" && typeof top.name !== "number") || top.name === "")
+  const nameValue = top.name;
+  if ((typeof nameValue !== "string" && typeof nameValue !== "number") || isBlank(nameValue))
     throw new Error('「名字」必填 / "名字" (name) is required');
 
-  // 链接：单键映射列表 → LinkItem[]，值走 fixUrl
+  // 链接：单键映射列表 → LinkItem[]，值走 fixUrl。
+  // 空标签会渲染成只有图标的空按钮，空网址则是无效 href；两者都告警并跳过，
+  // 与编辑器 incompleteEntries 的必填口径保持一致。
   const links: LinkItem[] = [];
-  for (const item of asListField(top, "links", "链接", warn)) {
+  for (const [i, item] of asListField(top, "links", "链接", warn).entries()) {
     const e = item && typeof item === "object" && !Array.isArray(item) ? Object.entries(item) : [];
     if (e.length !== 1 || typeof e[0][1] !== "string") {
-      warn(`链接里有一条不是「- 标签: 网址」的写法，已跳过`);
+      warn(`链接第 ${i + 1} 条不是「- 标签: 网址」的写法，已跳过`);
       continue;
     }
-    links.push({ label: String(e[0][0]), url: fixUrl(e[0][1]) });
+    const label = String(e[0][0]);
+    const url = e[0][1];
+    if (isBlank(label) || isBlank(url)) {
+      warn(`链接第 ${i + 1} 条缺「标签」或「网址」，已跳过`);
+      continue;
+    }    links.push({ label, url: fixUrl(url) });
   }
   const hasGithub = links.some((l) => /github\.com/i.test(l.url));
 
@@ -139,7 +147,7 @@ export function parseSite(raw: unknown): { site: SiteData; warnings: string[] } 
       continue;
     }
     const w = normalizeKeys(rawItem as Record<string, unknown>, WORK_ALIAS, `作品第 ${i + 1} 条`, warn);
-    if (w.name === undefined || w.name === null || w.name === "") {
+    if (isBlank(w.name)) {
       warn(`作品第 ${i + 1} 条缺「名字」，已跳过`);
       continue;
     }
@@ -169,15 +177,21 @@ export function parseSite(raw: unknown): { site: SiteData; warnings: string[] } 
     }
   }
 
-  // 数据：单键映射列表；「自动」需要 GitHub 链接
+  // 数据：单键映射列表；「自动」需要 GitHub 链接。
+  // 空标签/空值同样会渲染成空白数据条，按编辑器的必填口径告警并跳过。
   const stats: StatItem[] = [];
-  for (const item of asListField(top, "stats", "数据", warn)) {
+  for (const [i, item] of asListField(top, "stats", "数据", warn).entries()) {
     const e = item && typeof item === "object" && !Array.isArray(item) ? Object.entries(item) : [];
     if (e.length !== 1) {
-      warn(`数据里有一条不是「- 标签: 值」的写法，已跳过`);
+      warn(`数据第 ${i + 1} 条不是「- 标签: 值」的写法，已跳过`);
       continue;
     }
-    const [label, v] = e[0];
+    const [rawLabel, v] = e[0];
+    const label = String(rawLabel);
+    if (isBlank(label) || isBlank(v)) {
+      warn(`数据第 ${i + 1} 条缺「标签」或「值」，已跳过`);
+      continue;
+    }
     // 自动值：「自动/auto/星标」→ 总星数；「项目数/仓库数/repos」→ 非 fork/归档的公开仓库数。都需 GitHub 链接。
     const autoKind: "stars" | "repos" | "forks" | null =
       v === "自动" || v === "auto" || v === "星标"

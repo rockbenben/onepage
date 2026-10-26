@@ -86,4 +86,42 @@ describe("scripts/validate-config.mjs 冒烟测试（真跑子进程）", () => 
     const res = runValidate(dir);
     expect(res.status, res.stderr).toBe(0);
   });
+
+  it("空链接 / 空数据条目：exit 1 且指名文件与序号", () => {
+    const dir = makeFixture(
+      "名字: 张三\n链接:\n  - '': https://x.com\n  - GitHub: ''\n数据:\n  - '': 10\n  - Stars: ''\n",
+    );
+    const res = runValidate(dir);
+    expect(res.status).toBe(1);
+    expect(res.stderr).toMatch(/链接第 1 条/);
+    expect(res.stderr).toMatch(/数据第 1 条/);
+  });
+
+  it("合法链接 / 数据不误报：exit 0", () => {
+    const dir = makeFixture("名字: 张三\n链接:\n  - GitHub: https://github.com/u\n数据:\n  - Stars: 10\n");
+    const res = runValidate(dir);
+    expect(res.status, res.stderr).toBe(0);
+  });
+
+  it("翻译文件里的链接 / 数据是被忽略的结构字段：不硬拦（exit 0）", () => {
+    const dir = makeFixture("名字: 张三\n", {
+      "projects.en.yaml": "文字:\n  张三: Zhang\n链接:\n  - '': https://x.com\n数据:\n  - '': 1\n",
+    });
+    const res = runValidate(dir);
+    expect(res.status, res.stderr).toBe(0);
+    expect(res.stderr).toMatch(/结构字段|文字/);
+  });
+
+  it("作品有内容但缺名字：exit 1 且指名序号", () => {
+    const dir = makeFixture("名字: 张三\n作品:\n  - 介绍: 忘了名字\n");
+    const res = runValidate(dir);
+    expect(res.status).toBe(1);
+    expect(res.stderr).toMatch(/作品第 1 条/);
+  });
+
+  it("空白作品行不硬拦：exit 0", () => {
+    const dir = makeFixture("名字: 张三\n作品:\n  - {}\n");
+    const res = runValidate(dir);
+    expect(res.status, res.stderr).toBe(0);
+  });
 });

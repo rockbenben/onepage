@@ -237,6 +237,11 @@ export function repoNamesFrom(list) {
     .map((x) => repoFromUrl(x.trim())?.repo ?? x.trim());
 }
 
+/** 空串 / 纯空白都算没填；schema 与 validate 脚本共用同一判据 */
+export function isBlank(v) {
+  return String(v ?? "").trim() === "";
+}
+
 /** 零配置纠错：裸邮箱补 mailto:、裸域名补 https://；带协议/站内路径原样 */
 export function fixUrl(u) {
   const s = String(u ?? "").trim();
