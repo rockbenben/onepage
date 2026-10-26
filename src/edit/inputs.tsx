@@ -13,10 +13,11 @@ export function Group(props: {
   title: string;
   count?: number;
   action?: ComponentChildren;
+  name?: string;
   children: ComponentChildren;
 }) {
   return (
-    <section>
+    <section data-edit-group={props.name}>
       <div class="mb-4 flex items-baseline justify-between gap-3 border-b border-(--color-line) pb-2">
         <h2 class="eyebrow flex items-baseline gap-2">
           <span>{props.title}</span>

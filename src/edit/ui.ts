@@ -10,21 +10,34 @@ export interface EditorUI {
   langEn: string;
   copyYaml: string;
   copied: string;
+  copyFailed: string;
   download: string;
   openSite: string;
   viewYaml: string;
   hideYaml: string;
+  draftRestored: string;
+  draftClear: string;
+  draftDiscarded: string;
+  draftRestore: string;
+  replaceConfirm: string;
   // —— 导入 ——
   loadCurrent: string;
   uploadFile: string;
   pasteHint: string;
+  exportHint: string;
   yamlAria: string;
   importThis: string;
   discardDraft: string;
+  draftUnimported: string;
   importFailed: string;
   // —— 校验 ——
   validationPrefix: string;
   urlInvalid: string;
+  linkMissingLabel: string;
+  linkMissingUrl: string;
+  workMissingName: string;
+  statMissingLabel: string;
+  statMissingValue: string;
   // —— 残留横幅 ——
   residueTitle: string;
   residueGithub: string;
@@ -89,6 +102,9 @@ export interface EditorUI {
   fLangPlaceholder: string;
   // —— 通用增删移 ——
   remove: string;
+  removeLinkConfirm: string;
+  removeWorkConfirm: string;
+  removeStatConfirm: string;
   moveUp: string;
   moveDown: string;
 }
@@ -99,19 +115,32 @@ const zh: EditorUI = {
   langEn: "EN",
   copyYaml: "复制 YAML",
   copied: "已复制",
+  copyFailed: "复制失败，请改用「下载 projects.yaml」。",
   download: "下载 projects.yaml",
   openSite: "打开你的站看看",
   viewYaml: "查看 YAML",
   hideYaml: "收起 YAML",
+  draftRestored: "已恢复上次编辑的内容。",
+  draftClear: "清空草稿",
+  draftDiscarded: "校样里有未导入的改动，已在改表单时收起。",
+  draftRestore: "恢复校样改动",
+  replaceConfirm: "载入会替换你正在填写的内容，继续？",
   loadCurrent: "载入当前站配置",
   uploadFile: "上传文件",
-  pasteHint: "已有 projects.yaml？直接粘贴到右侧 YAML 面板，再点「导入这段 YAML」，表单就会读进你的内容。",
+  pasteHint: "已有 projects.yaml？把它粘贴到 YAML 面板，再点「导入这段 YAML」，表单就会读进你的内容。",
+  exportHint: "填好后点顶部「复制 YAML」或「下载 projects.yaml」，用导出的内容替换仓库里的 src/data/projects.yaml。",
   yamlAria: "YAML 校样，可直接改文字再点「导入这段 YAML」",
   importThis: "导入这段 YAML",
   discardDraft: "放弃，回到表单结果",
+  draftUnimported: "校样里还有未导入的改动，先导入或放弃，再复制 / 下载。",
   importFailed: "这个 YAML 读不进来：",
   validationPrefix: "还差一点就能导出：",
   urlInvalid: "网址要写完整地址，以 https:// 开头，例如 https://你的用户名.github.io",
+  linkMissingLabel: "第 {n} 条链接缺少标签",
+  linkMissingUrl: "第 {n} 条链接缺少网址",
+  workMissingName: "第 {n} 条作品缺少名字",
+  statMissingLabel: "第 {n} 条数据缺少标签",
+  statMissingValue: "第 {n} 条数据缺少值",
   residueTitle: "这些还是模板作者的，记得换成你的：",
   residueGithub: "链接里的 GitHub 还是模板作者的（rockbenben），记得换成你自己的。",
   residueUrl: "网址还是模板作者的（me.newzone.top），记得换成你自己的。",
@@ -129,7 +158,7 @@ const zh: EditorUI = {
   fIntro: "一句话介绍",
   pIntro: "一句话说清你是谁、在做什么。",
   fAvatar: "头像（/avatar.jpg 或图片网址；留空时若链接里有 GitHub 会自动抓）",
-  fLinkLabel: "标签",
+  fLinkLabel: "标签（必填）",
   fLinkUrl: "网址",
   addLink: "+ 加一个链接",
   emptyLinks: "还没有链接。GitHub、邮箱、博客都可以加。",
@@ -168,6 +197,9 @@ const zh: EditorUI = {
   fLang: "语言（模板固定文案的语言）",
   fLangPlaceholder: "中文 / English / 日本語 …",
   remove: "删除",
+  removeLinkConfirm: "删除链接「{name}」？",
+  removeWorkConfirm: "删除作品「{name}」？",
+  removeStatConfirm: "删除数据「{name}」？",
   moveUp: "上移",
   moveDown: "下移",
 };
@@ -178,19 +210,32 @@ const en: EditorUI = {
   langEn: "EN",
   copyYaml: "Copy YAML",
   copied: "Copied",
+  copyFailed: "Copy failed. Use “Download projects.yaml” instead.",
   download: "Download projects.yaml",
   openSite: "Open your site",
   viewYaml: "Show YAML",
   hideYaml: "Hide YAML",
+  draftRestored: "Restored your last edit.",
+  draftClear: "Clear draft",
+  draftDiscarded: "Unimported YAML changes were set aside when you edited the form.",
+  draftRestore: "Restore YAML changes",
+  replaceConfirm: "Loading this will replace what you've filled in. Continue?",
   loadCurrent: "Load current config",
   uploadFile: "Upload file",
-  pasteHint: 'Already have a projects.yaml? Paste it into the YAML panel on the right, then click "Import this YAML" and the form reads it in.',
+  pasteHint: 'Already have a projects.yaml? Paste it into the YAML panel, then click "Import this YAML" and the form reads it in.',
+  exportHint: 'When you are done, use Copy YAML or Download projects.yaml at the top, then replace src/data/projects.yaml in your repo with the result.',
   yamlAria: 'YAML proof. Edit the text here, then click "Import this YAML".',
   importThis: "Import this YAML",
   discardDraft: "Discard, back to form",
+  draftUnimported: "The YAML panel has unimported changes. Import or discard them before copying or downloading.",
   importFailed: "Couldn't read this YAML: ",
   validationPrefix: "Almost ready to export: ",
   urlInvalid: "The URL must be a full address starting with https://, e.g. https://your-username.github.io",
+  linkMissingLabel: "Link {n} is missing a label",
+  linkMissingUrl: "Link {n} is missing a URL",
+  workMissingName: "Work {n} is missing a name",
+  statMissingLabel: "Stat {n} is missing a label",
+  statMissingValue: "Stat {n} is missing a value",
   residueTitle: "These are still the template author's — change them to yours:",
   residueGithub: "The GitHub link is still the template author's (rockbenben) — use your own.",
   residueUrl: "The site URL is still the template author's (me.newzone.top) — use your own.",
@@ -208,7 +253,7 @@ const en: EditorUI = {
   fIntro: "One-line intro",
   pIntro: "One line: who you are and what you do.",
   fAvatar: "Avatar (/avatar.jpg or an image URL; auto-fetched from GitHub if blank)",
-  fLinkLabel: "Label",
+  fLinkLabel: "Label (required)",
   fLinkUrl: "URL",
   addLink: "+ Add link",
   emptyLinks: "No links yet. GitHub, email, blog — add any of them.",
@@ -247,6 +292,9 @@ const en: EditorUI = {
   fLang: "Language (template's fixed copy)",
   fLangPlaceholder: "中文 / English / 日本語 …",
   remove: "Remove",
+  removeLinkConfirm: "Delete link “{name}”?",
+  removeWorkConfirm: "Delete work “{name}”?",
+  removeStatConfirm: "Delete stat “{name}”?",
   moveUp: "Move up",
   moveDown: "Move down",
 };
