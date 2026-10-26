@@ -44,11 +44,13 @@ const LANG_COLOR: Record<string, string> = {
           )}
           <div class="flex grow flex-col p-4">
             <div class="flex items-baseline justify-between gap-3">
-              {main ? (
-                <a href={main} target="_blank" rel="noopener noreferrer" class="link-quiet min-w-0 truncate font-semibold">{it.name}</a>
-              ) : (
-                <span class="min-w-0 truncate font-semibold">{it.name}</span>
-              )}
+              <h3 class="min-w-0 truncate text-base font-semibold">
+                {main ? (
+                  <a href={main} target="_blank" rel="noopener noreferrer" class="link-quiet">{it.name}</a>
+                ) : (
+                  <span>{it.name}</span>
+                )}
+              </h3>
               {r && r.stars >= 10 && <span class="chip chip-star shrink-0">★ {fmtStars(r.stars)}</span>}
             </div>
             {desc && <p class="mt-1.5 line-clamp-2 grow text-sm leading-relaxed text-(--color-ink-2)">{desc}</p>}
